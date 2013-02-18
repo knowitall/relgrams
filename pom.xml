@@ -1,0 +1,397 @@
+<?xml version="1.0"?>
+<!--  -->
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>edu.washington.cs.knowitall</groupId>
+    <artifactId>relgramscore</artifactId>
+    <name>relgramscore</name>
+    <version>1.0.0-SNAPSHOT</version>
+    <parent>
+        <groupId>edu.washington.cs.knowitall</groupId>
+        <artifactId>knowitall</artifactId>
+        <version>2.1.1</version>
+    </parent>
+    <!--version>1.1.1-SNAPSHOT</version-->
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <repositories>
+        <repository>
+            <id>knowitall-public</id>
+            <url>http://knowitall.cs.washington.edu/maven2</url>
+        </repository>
+        <repository>
+            <id>scala-tools.org</id>
+            <url>http://scala-tools.org/repo-releases</url>
+        </repository>
+        <repository>
+            <id>opennlp.sf.net</id>
+            <url>http://opennlp.sourceforge.net/maven2</url>
+        </repository>
+
+        <repository>
+            <id>knowitall-snapshot</id>
+            <url>http://knowitall.cs.washington.edu/maven2-snapshot</url>
+        </repository>
+
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+        </repository>
+        <repository>
+            <id>sonatype-snapshot</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+
+        <repository>
+            <id>scala-tools-releases</id>
+            <name>Scala Tools Releases</name>
+            <url>https://repository.jboss.org/nexus/content/repositories/scala-tools-releases</url>
+        </repository>
+
+        <repository>
+            <id>Packaged Avro</id>
+            <url>http://nicta.github.com/scoobi/releases/</url>
+        </repository>
+
+        <repository>
+            <id>scalanlp.org</id>
+            <name>ScalaNLP Maven2 Repository</name>
+            <url>http://repo.scalanlp.org/repo</url>
+        </repository>
+
+
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>scala-tools.org</id>
+            <name>Scala-tools Maven2 Repository</name>
+            <url>http://scala-tools.org/repo-releases</url>
+        </pluginRepository>
+    </pluginRepositories>
+    <dependencies>
+
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+
+        <!-- Vestigial depdenencies. -->
+        <!--dependency>
+            <groupId>edu.washington.cs.knowitall</groupId>
+            <artifactId>relink</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency-->
+
+
+        <!--dependency>
+            <groupId>edu.washington.cs.knowitall</groupId>
+            <artifactId>relinkhadoop</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency-->
+
+        <!-- Extractors: ReVerb and OpenParse -->
+        <!--dependency>
+            <groupId>edu.washington.cs.knowitall</groupId>
+            <artifactId>reverb-core</artifactId>
+            <version>1.4.1</version>
+        </dependency-->
+
+
+        <dependency>
+            <groupId>edu.washington.cs.knowitall.ollie</groupId>
+            <artifactId>ollie-core_2.9.2</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+        <!-- Typing -->
+
+        <!--dependency>
+            <groupId>edu.washington.cs.knowitall</groupId>
+            <artifactId>browser-entitylinker</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency-->
+
+        <dependency>
+            <groupId>knowitall</groupId>
+            <artifactId>wordnet-demo</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+        <!-- NLP tools and their models. -->
+
+        <dependency>
+            <groupId>edu.washington.cs.knowitall.nlptools</groupId>
+            <artifactId>nlptools-core_2.9.2</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.washington.cs.knowitall.nlptools</groupId>
+            <artifactId>nlptools-stem-morpha_2.9.2</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.washington.cs.knowitall.nlptools</groupId>
+            <artifactId>nlptools-parse-malt_2.9.2</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+
+
+
+        <dependency>
+            <groupId>edu.washington.cs.knowitall.nlptools</groupId>
+            <artifactId>nlptools-typer-stanford_2.9.2</artifactId>
+            <version>2.3.1-SNAPSHOT</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>edu.washington.cs.knowitall</groupId>
+            <artifactId>opennlp-sent-models</artifactId>
+            <version>1.5</version>
+            <scope>runtime</scope>
+        </dependency>
+
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-core</artifactId>
+            <version>1.0.2</version>
+            <!--version>0.20.203.0</version-->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-lzo</artifactId>
+            <version>0.4.13</version>
+        </dependency>
+
+        <!-- scoobi -->
+        <!--dependency>
+            <groupId>com.nicta</groupId>
+            <artifactId>scoobi_2.9.2</artifactId>
+            <version>0.4.0</version>
+        </dependency-->
+        <!--dependency>
+            <groupId>com.nicta</groupId>
+            <artifactId>scoobi_2.9.2</artifactId>
+            <version>0.5.0-cdh4</version>
+        </dependency-->
+
+        <!-- Web -->
+        <dependency>
+            <groupId>net.databinder</groupId>
+            <artifactId>unfiltered-jetty_2.9.1</artifactId>
+            <version>0.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.databinder</groupId>
+            <artifactId>unfiltered-filter_2.9.1</artifactId>
+            <version>0.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.databinder</groupId>
+            <artifactId>unfiltered-json_2.9.1</artifactId>
+            <version>0.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.databinder</groupId>
+            <artifactId>unfiltered-scalate_2.9.1</artifactId>
+            <version>0.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.fusesource.scalate</groupId>
+            <artifactId>scalate-war</artifactId>
+            <version>1.5.2</version>
+            <type>war</type>
+        </dependency>
+
+        <!-- Scala -->
+
+        <!--dependency>
+            <groupId>org.scalaz</groupId>
+            <artifactId>scalaz-full_2.9.1</artifactId>
+            <version>6.0.4</version>
+        </dependency-->
+
+        <dependency>
+            <groupId>com.github.scopt</groupId>
+            <artifactId>scopt_2.9.0-1</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <!-- Graph algorithms -->
+        <dependency>
+            <groupId>jgrapht</groupId>
+            <artifactId>jgrapht</artifactId>
+            <version>0.8.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scalala</groupId>
+            <artifactId>scalala_2.9.1</artifactId>
+            <version>1.0.0.RC2</version>
+        </dependency>
+
+        <!-- wordnet -->
+
+        <dependency>
+            <groupId>net.sf.extjwnl</groupId>
+            <artifactId>extjwnl</artifactId>
+            <version>1.5</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>knowitall</groupId>
+            <artifactId>wordnet-demo</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+
+    </dependencies>
+
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.github.maven-hadoop.plugin</groupId>
+                <artifactId>maven-hadoop-plugin</artifactId>
+                <version>0.20.1</version>
+                <configuration>
+                    <!--hadoopHome>/Users/niranjan/work/local/hadoop-0.20.203.0-oct21</hadoopHome-->
+                    <hadoopHome>/Users/niranjan/work/local/hadoop-1.0.2</hadoopHome>
+                    <!--hadoopHome>/home/knowall/hadoop</hadoopHome-->
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.scala-tools</groupId>
+                <artifactId>maven-scala-plugin</artifactId>
+                <configuration>
+                    <sourceDir>src/main/scala</sourceDir>
+                    <jvmArgs>
+                        <jvmArg>-Xms64m</jvmArg>
+                        <jvmArg>-Xmx1024m</jvmArg>
+                    </jvmArgs>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>compile</goal>
+                                <goal>testCompile</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${mainClass}</mainClass>
+                        </manifest>
+                    </archive>
+
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.mortbay.jetty</groupId>
+                <artifactId>jetty-maven-plugin</artifactId>
+                <version>8.0.3.v20111011</version>
+                <configuration>
+                    <connectors>
+                        <connector implementation="org.eclipse.jetty.server.nio.SelectChannelConnector">
+                            <port>8088</port>
+                        </connector>
+                    </connectors>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-eclipse-plugin</artifactId>
+                <configuration>
+                    <sourceIncludes>
+                        <sourceInclude>**/*.scala</sourceInclude>
+                    </sourceIncludes>
+                    <buildcommands>
+                        <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
+                    </buildcommands>
+                    <additionalProjectnatures>
+                        <!-- maven-eclipse-plugin puts this nature after org.eclipse.jdt.core.javanature in .project so the project will have graphA J badge instead of an S in the Package Explorer -->
+                        <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
+                    </additionalProjectnatures>
+                    <classpathContainers>
+                        <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
+                        <classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
+                    </classpathContainers>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/main/scala</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>add-test-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/test/scala</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <pluginManagement>
+            <plugins>
+                <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+                <plugin>
+                    <groupId>org.eclipse.m2e</groupId>
+                    <artifactId>lifecycle-mapping</artifactId>
+                    <version>1.0.0</version>
+                    <configuration>
+                        <lifecycleMappingMetadata>
+                            <pluginExecutions>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.codehaus.mojo</groupId>
+                                        <artifactId>
+                                            build-helper-maven-plugin
+                                        </artifactId>
+                                        <versionRange>[1.7,)</versionRange>
+                                        <goals>
+                                            <goal>add-test-source</goal>
+                                            <goal>add-source</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore></ignore>
+                                    </action>
+                                </pluginExecution>
+                            </pluginExecutions>
+                        </lifecycleMappingMetadata>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
