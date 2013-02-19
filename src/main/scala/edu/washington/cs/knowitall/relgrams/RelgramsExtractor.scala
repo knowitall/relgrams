@@ -15,90 +15,13 @@ import collection.mutable.{ArrayBuffer, HashMap}
 import collection.mutable
 import io.Source
 import java.io.PrintWriter
+import org.slf4j.LoggerFactory
 
-
-object TypedTuplesRecord{
-  //docid sentid sentence extrid origtuple headtuple arg1types arg2types
-  def fromString(string: String): Option[TypedTuplesRecord] = {
-    val splits = string.split("\t")
-    if (splits.size > 9){
-      var i = 0
-      def nextString = {
-        val out = if (splits.size > i) splits(i) else ""
-        i = i + 1
-        out
-      }
-      val docid = nextString
-      val sentid = nextString.toInt
-      val sentence = nextString
-      val extrid = nextString.toInt
-      val hashes = nextString.split(",").map(x => x.toInt).toSet
-      val arg1 = nextString
-      val rel = nextString
-      val arg2 = nextString
-      val arg1Head = nextString
-      val relHead = nextString
-      val arg2Head = nextString
-
-      val arg1Types = nextString.split(",")
-      val arg2Types = nextString.split(",")
-      Some(new TypedTuplesRecord(docid, sentid, sentence, extrid, hashes,
-                                 arg1, rel, arg2,
-                                 arg1Head, relHead, arg2Head,
-                                 arg1Types, arg2Types))
-    }else{
-      None
-    }
-  }
-
-}
-
-case class IndexedTypedTuplesRecord(index:Int, record:TypedTuplesRecord)
-case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:Int, hashes:Set[Int],
-                             arg1:String, rel:String, arg2:String,
-                             arg1Head:String, var relHead:String, arg2Head:String,
-                             arg1Types:Seq[String], arg2Types:Seq[String]){
-
-
-
-  //check if 'this' current record is within a window distance from 'that'
-  def isWithinWindow(that:TypedTuplesRecord, window:Int): Boolean = {
-    (this.extrid > that.extrid) && ((this.extrid - that.extrid) <= window)
-    //(inner.eid > outer.eid) && ((inner.sentenceid - outer.sentenceid) < eid)
-  }
-  //This is probably extreme!
-  val beVerbPPRemoveRe = """be (.*?) (.+$)""".r
-  val beRemoveRe = """be (.*)""".r
-  def cleanRelString(rel:String): String = {
-    var m = beVerbPPRemoveRe.findFirstMatchIn(rel)
-    if ( m != None) {
-      m.get.group(1)
-    } else {
-      rel.replaceAll("""^be """, "")
-    }
-  }
-  def normTupleString(): String = {
-    arg1Head + " " + cleanRelString(relHead) + " " + arg2Head
-  }
-
-  def setSubsumption(awords: Array[String], bwords: Array[String]): Boolean = {
-    awords.toSet.subsetOf(bwords.toSet)
-  }
-  def subsumes(that: TypedTuplesRecord):Boolean = {
-    val thisString = this.normTupleString()
-    val thatString = that.normTupleString()
-    val subsumesVal = thisString.contains(thatString) ||
-      thatString.contains(thisString) ||
-      setSubsumption(thisString.split(" "), thatString.split(" "))
-    return subsumesVal
-
-  }
-}
 
 class RelgramsExtractor(window:Int) {
 
 
-
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   //Two relations are different as long as they are between different arguments.
   def areDifferentRelations(outer: TypedTuplesRecord, inner: TypedTuplesRecord): Boolean = {
