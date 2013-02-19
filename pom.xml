@@ -77,50 +77,9 @@
             <version>2.9.2</version>
         </dependency>
 
-        <!-- Vestigial depdenencies. -->
-        <!--dependency>
-            <groupId>edu.washington.cs.knowitall</groupId>
-            <artifactId>relink</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency-->
-
-
-        <!--dependency>
-            <groupId>edu.washington.cs.knowitall</groupId>
-            <artifactId>relinkhadoop</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency-->
-
-        <!-- Extractors: ReVerb and OpenParse -->
-        <!--dependency>
-            <groupId>edu.washington.cs.knowitall</groupId>
-            <artifactId>reverb-core</artifactId>
-            <version>1.4.1</version>
-        </dependency-->
-
-
-        <dependency>
-            <groupId>edu.washington.cs.knowitall.ollie</groupId>
-            <artifactId>ollie-core_2.9.2</artifactId>
-            <version>1.0.1</version>
-        </dependency>
-        <!-- Typing -->
-
-        <!--dependency>
-            <groupId>edu.washington.cs.knowitall</groupId>
-            <artifactId>browser-entitylinker</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency-->
-
-        <dependency>
-            <groupId>knowitall</groupId>
-            <artifactId>wordnet-demo</artifactId>
-            <version>1.0</version>
-        </dependency>
-
         <!-- NLP tools and their models. -->
 
-        <dependency>
+        <!--dependency>
             <groupId>edu.washington.cs.knowitall.nlptools</groupId>
             <artifactId>nlptools-core_2.9.2</artifactId>
             <version>2.3.0</version>
@@ -150,7 +109,7 @@
             <artifactId>opennlp-sent-models</artifactId>
             <version>1.5</version>
             <scope>runtime</scope>
-        </dependency>
+        </dependency-->
 
 
         <dependency>
@@ -171,57 +130,16 @@
         </dependency>
 
         <!-- scoobi -->
-        <!--dependency>
+        <dependency>
             <groupId>com.nicta</groupId>
             <artifactId>scoobi_2.9.2</artifactId>
-            <version>0.4.0</version>
-        </dependency-->
-        <!--dependency>
-            <groupId>com.nicta</groupId>
-            <artifactId>scoobi_2.9.2</artifactId>
-            <version>0.5.0-cdh4</version>
-        </dependency-->
-
-        <!-- Web -->
-        <dependency>
-            <groupId>net.databinder</groupId>
-            <artifactId>unfiltered-jetty_2.9.1</artifactId>
-            <version>0.5.1</version>
+            <version>0.5.0-cdh3</version>
         </dependency>
-        <dependency>
-            <groupId>net.databinder</groupId>
-            <artifactId>unfiltered-filter_2.9.1</artifactId>
-            <version>0.5.1</version>
-        </dependency>
-        <dependency>
-            <groupId>net.databinder</groupId>
-            <artifactId>unfiltered-json_2.9.1</artifactId>
-            <version>0.5.1</version>
-        </dependency>
-        <dependency>
-            <groupId>net.databinder</groupId>
-            <artifactId>unfiltered-scalate_2.9.1</artifactId>
-            <version>0.5.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.fusesource.scalate</groupId>
-            <artifactId>scalate-war</artifactId>
-            <version>1.5.2</version>
-            <type>war</type>
-        </dependency>
-
-        <!-- Scala -->
-
-        <!--dependency>
-            <groupId>org.scalaz</groupId>
-            <artifactId>scalaz-full_2.9.1</artifactId>
-            <version>6.0.4</version>
-        </dependency-->
 
         <dependency>
             <groupId>com.github.scopt</groupId>
-            <artifactId>scopt_2.9.0-1</artifactId>
-            <version>1.0.0</version>
+            <artifactId>scopt_2.9.2</artifactId>
+            <version>2.1.0</version>
         </dependency>
 
         <!-- Graph algorithms -->
@@ -237,20 +155,6 @@
             <version>1.0.0.RC2</version>
         </dependency>
 
-        <!-- wordnet -->
-
-        <dependency>
-            <groupId>net.sf.extjwnl</groupId>
-            <artifactId>extjwnl</artifactId>
-            <version>1.5</version>
-        </dependency>
-
-
-        <dependency>
-            <groupId>knowitall</groupId>
-            <artifactId>wordnet-demo</artifactId>
-            <version>1.0</version>
-        </dependency>
 
 
     </dependencies>
