@@ -21,7 +21,7 @@ object RelationTuple{
   val sep = "\t"
   def fromSerializedString(string:String):Option[RelationTuple] = {
     val splits = string.split("\t")
-    if (splits.size > 4){
+    if (splits.size > 3){
       val arg1 = splits(0)
       val rel = splits(1)
       val arg2 = splits(2)
@@ -104,7 +104,9 @@ case class ArgCounts(firstArg1Counts:scala.collection.mutable.Map[String,Int],
 
 
 object RelgramCounts{
-  def isDummy(rgc: RelgramCounts):Boolean = rgc.relgram.first.arg1.equals("NA") &&  rgc.relgram.second.arg1.equals("NA")
+  def isDummy(rgc: RelgramCounts):Boolean = {
+    rgc.relgram.first.arg1.equals("NA") &&  rgc.relgram.second.arg1.equals("NA")
+  }
 
 
   val dummyTuple = new RelationTuple("NA", "NA", "NA", (0::Nil).toSet,

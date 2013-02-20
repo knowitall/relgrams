@@ -79,6 +79,11 @@
 
         <!-- NLP tools and their models. -->
 
+        <dependency>
+            <groupId>edu.washington.cs.knowitall.nlptools</groupId>
+            <artifactId>nlptools-coref-stanford_2.9.2</artifactId>
+            <version>2.3.1-SNAPSHOT</version>
+        </dependency>
         <!--dependency>
             <groupId>edu.washington.cs.knowitall.nlptools</groupId>
             <artifactId>nlptools-core_2.9.2</artifactId>

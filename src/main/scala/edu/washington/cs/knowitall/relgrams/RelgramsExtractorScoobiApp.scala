@@ -60,20 +60,30 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
       updateHashes(mergeWith, toMerge)
       mergeArgCounts(mergeWith, toMerge)
       mergeCounts(mergeWith, toMerge)
+    }else{
+      println("Not merging1: " + mergeWith)
+      println("Not merging2: " + toMerge)
     }
+
 
   }
 
   def reduceRelgramCounts(rgcs:Iterable[RelgramCounts]) = {
     var outRGC:RelgramCounts = null
-    rgcs.filter(rgc => !RelgramCounts.isDummy(rgc)).foreach(rgc => {
+    rgcs.filter(rgc => {
+      val filterVal = !RelgramCounts.isDummy(rgc)
+      if(filterVal == false){
+        println("Ignoring dummy rgc: " + rgc)
+      }
+      filterVal
+    }).foreach(rgc => {
       if (outRGC == null){
         outRGC = rgc
       }else{
         merge(outRGC, rgc)
       }
     })
-    //println("outrgc: " + outRGC.prettyString)
+    println("outrgc: " + outRGC.prettyString)
     if(outRGC != null) Some(outRGC) else None
   }
 
@@ -104,7 +114,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     try{
       import RelgramCounts._
       import TypedTuplesRecord._
-      persist(TextOutput.toTextFile(relgramCounts, outputPath))
+      persist(TextOutput.toTextFile(relgramCounts.map(x => x.prettyString), outputPath))
     }catch{
       case e:Exception => {
         println("Failed to persist reduced relgrams for type and head norm types.")
