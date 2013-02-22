@@ -19,18 +19,20 @@ import edu.washington.cs.knowitall.relgrams.utils.MapUtils._
 
 object RelationTuple{
   val sep = "\t"
+  val SENT_SEP="_SENT_SEP_"
   def fromSerializedString(string:String):Option[RelationTuple] = {
     val splits = string.split("\t")
-    if (splits.size > 3){
+    if (splits.size > 4){
       val arg1 = splits(0)
       val rel = splits(1)
       val arg2 = splits(2)
       var hashes = splits(3).split(",").map(x => x.toInt).toSet
+      var sentences = splits(4).split(SENT_SEP).toSet
       var arg1HeadCounts = new mutable.HashMap[String, Int]()
-      if (splits.size > 4) arg1HeadCounts ++= MapUtils.StringIntMapfromCountsString(splits(4))
+      if (splits.size > 5) arg1HeadCounts ++= MapUtils.StringIntMapfromCountsString(splits(5))
       var arg2HeadCounts = new mutable.HashMap[String, Int]()
-      if (splits.size > 5) arg2HeadCounts ++= MapUtils.StringIntMapfromCountsString(splits(5))
-      Some(new RelationTuple(arg1, rel, arg2, hashes, arg1HeadCounts, arg2HeadCounts))
+      if (splits.size > 6) arg2HeadCounts ++= MapUtils.StringIntMapfromCountsString(splits(6))
+      Some(new RelationTuple(arg1, rel, arg2, hashes, sentences, arg1HeadCounts, arg2HeadCounts))
     }else{
       None
     }
@@ -38,15 +40,19 @@ object RelationTuple{
 }
 case class RelationTuple(arg1:String, rel:String, arg2:String,
                          var hashes:Set[Int],
+                         var sentences:Set[String],
                          var arg1HeadCounts:scala.collection.mutable.Map[String,Int],
                          var arg2HeadCounts:scala.collection.mutable.Map[String,Int]){
 
+  import RelationTuple._
   def serialize:String = toString
   private def countsString(counts:Map[String, Int]):String = toCountsString(counts)//counts.toSeq.sortBy(ac => ac._2).map(ac => "%s(%d)".format(ac._1, ac._2)).mkString(",")
   def prettyString:String = "%s\t%s\t%s".format(arg1, rel, arg2)
-  override def toString:String = "%s\t%s\t%s\t%s\t%s\t%s".format(arg1, rel, arg2,
+  override def toString:String = "%s\t%s\t%s\t%s\t%s\t%s\t%s".format(arg1, rel, arg2,
                                                                  hashes.mkString(","),
-                                                                 countsString(arg1HeadCounts.toMap), countsString(arg2HeadCounts.toMap))
+                                                                 sentences.mkString(SENT_SEP),
+                                                                 countsString(arg1HeadCounts.toMap),
+                                                                 countsString(arg2HeadCounts.toMap))
 }
 
 object Relgram {
@@ -68,7 +74,7 @@ case class Relgram(first:RelationTuple, second:RelationTuple){
 
   import Relgram._
   def serialize: String = "%s%s%s".format(first.serialize, sep, second.serialize)
-  def prettyString:String = "%s\t%s".format(first.prettyString, second.prettyString)
+  def prettyString:String = "%s\t%s\t%s\t%s".format(first.prettyString, second.prettyString, first.sentences.take(1).mkString(","), second.sentences.take(1).mkString(","))
   override def toString:String = "%s\t%s".format(first, second)
 }
 
@@ -109,7 +115,7 @@ object RelgramCounts{
   }
 
 
-  val dummyTuple = new RelationTuple("NA", "NA", "NA", (0::Nil).toSet,
+  val dummyTuple = new RelationTuple("NA", "NA", "NA", (0::Nil).toSet, Set(""),
                                      new scala.collection.mutable.HashMap[String,Int](), new scala.collection.mutable.HashMap[String,Int]())
   val DummyRelgramCounts:RelgramCounts = new RelgramCounts(new Relgram(dummyTuple, dummyTuple), new mutable.HashMap[Int, Int](), ArgCounts.newInstance)
   implicit def RelgramCountsFmt = new WireFormat[RelgramCounts]{

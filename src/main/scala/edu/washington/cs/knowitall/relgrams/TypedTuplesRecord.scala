@@ -3,6 +3,9 @@ package edu.washington.cs.knowitall.relgrams
 import com.nicta.scoobi.core.WireFormat
 import java.io.{DataInput, DataOutput}
 import org.slf4j.LoggerFactory
+import edu.washington.cs.knowitall.collection.immutable.Interval
+import util.matching.Regex.Match
+import io.Source
 
 /**
  * Created with IntelliJ IDEA.
@@ -15,8 +18,42 @@ import org.slf4j.LoggerFactory
 
 object TypedTuplesRecord{
 
-  val logger = LoggerFactory.getLogger(this.getClass)
+  def main(args:Array[String]){
+    val testFile = args(0)
+    Source.fromFile(testFile).getLines.flatMap(line => {
+      val recordOption = fromString(line)
+      recordOption match {
+        case Some(record:TypedTuplesRecord) => {
+          println("Successful record: " + record)
 
+        }
+        case None => {
+          println("Failed to read record from line: " + line)
+        }
+      }
+      recordOption
+    }).foreach(record => {
+      val string = record.toString
+      TypedTuplesRecord.fromString(string) match {
+        case Some(x:TypedTuplesRecord) => println("Success.")
+        case None => println("Failed to deserialize from serialized string: " + string)
+      }
+    })
+
+  }
+  val logger = LoggerFactory.getLogger(this.getClass)
+  val span_sep = "_SPAN_"
+  val textSpanRe = """(.*?)%s(.*?)%s(.*?)""".format(span_sep, "-").r
+  def textSpan(text:String, interval:Interval) = "%s%s%s-%s".format(text, span_sep, interval.start, interval.end)
+  def fromTextSpan(textSpan:String):Option[(String, Interval)] = {
+    if (textSpanRe.findFirstMatchIn(textSpan) != None){
+      val textSpanRe(x:String, s:String, e:String) = textSpan
+      Some((x, Interval.open(s.toInt, e.toInt)))
+    }else{
+      println("Failed to extract from textspan: " + textSpan)
+      None
+    }
+  }
   //docid sentid sentence extrid origtuple headtuple arg1types arg2types
   def fromString(string: String): Option[TypedTuplesRecord] = {
     val splits = string.split("\t")
@@ -32,18 +69,18 @@ object TypedTuplesRecord{
       val sentence = nextString
       val extrid = nextString.toInt
       val hashes = nextString.split(",").map(x => x.toInt).toSet
-      val arg1 = nextString
-      val rel = nextString
-      val arg2 = nextString
-      val arg1Head = nextString
-      val relHead = nextString
-      val arg2Head = nextString
+      val (arg1:String, arg1Interval:Interval) = fromTextSpan(nextString).get
+      val (rel:String, relInterval:Interval) = fromTextSpan(nextString).get
+      val (arg2:String, arg2Interval:Interval) = fromTextSpan(nextString).get
+      val (arg1Head:String, arg1HeadInterval:Interval) = fromTextSpan(nextString).get
+      val (relHead:String, relHeadInterval:Interval) = fromTextSpan(nextString).get
+      val (arg2Head:String, arg2HeadInterval:Interval) = fromTextSpan(nextString).get
       val arg1Types = nextString.split(",")
       val arg2Types = nextString.split(",")
 
       Some(new TypedTuplesRecord(docid, sentid, sentence, extrid, hashes,
-        arg1, rel, arg2,
-        arg1Head, relHead, arg2Head,
+        arg1, arg1Interval, rel, relInterval, arg2, arg2Interval,
+        arg1Head, arg1HeadInterval, relHead, relHeadInterval, arg2Head, arg2HeadInterval,
         arg1Types, arg2Types))
     }else{
       logger.error("Failed to read TypedTuplesRecord from string: " + string)
@@ -60,14 +97,15 @@ object TypedTuplesRecord{
 }
 
 case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:Int, hashes:Set[Int],
-                             arg1:String, rel:String, arg2:String,
-                             arg1Head:String, var relHead:String, arg2Head:String,
+                             arg1:String, arg1Interval:Interval, rel:String, relInterval:Interval, arg2:String, arg2Interval:Interval,
+                             arg1Head:String, arg1HeadInterval:Interval, var relHead:String, var relHeadInterval:Interval, arg2Head:String, arg2HeadInterval:Interval,
                              arg1Types:Seq[String], arg2Types:Seq[String]){
 
 
+  import TypedTuplesRecord._
   override def toString:String = "%s\t%d\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s".format(docid, sentid, sentence, extrid, hashes.mkString(","),
-  arg1, rel, arg2,
-  arg1Head, relHead, arg2Head,
+  textSpan(arg1, arg1Interval), textSpan(rel, relInterval), textSpan(arg2, arg2Interval),
+  textSpan(arg1Head, arg1HeadInterval), textSpan(relHead, relHeadInterval), textSpan(arg2Head, arg2HeadInterval),
   arg1Types.mkString(","), arg2Types.mkString(","))
   //check if 'this' current record is within a window distance from 'that'
   def isWithinWindow(that:TypedTuplesRecord, window:Int): Boolean = {
@@ -96,8 +134,8 @@ case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:I
     val thisString = this.normTupleString()
     val thatString = that.normTupleString()
     val subsumesVal = thisString.contains(thatString) ||
-      thatString.contains(thisString) ||
-      setSubsumption(thisString.split(" "), thatString.split(" "))
+                      thatString.contains(thisString) ||
+                      setSubsumption(thisString.split(" "), thatString.split(" "))
     return subsumesVal
 
   }

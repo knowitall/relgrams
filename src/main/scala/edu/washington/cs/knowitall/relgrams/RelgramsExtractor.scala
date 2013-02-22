@@ -17,8 +17,9 @@ import io.Source
 import java.io.PrintWriter
 import org.slf4j.LoggerFactory
 import scala.Predef._
-import scala.Some
+import scala.{collection, Some}
 import edu.washington.cs.knowitall.tool.coref.StanfordCoreferenceResolver
+import scala.collection
 
 
 class RelgramsExtractor(window:Int) {
@@ -30,11 +31,13 @@ class RelgramsExtractor(window:Int) {
 
   //Two relations are different as long as they are between different arguments.
   def areDifferentRelations(outer: TypedTuplesRecord, inner: TypedTuplesRecord): Boolean = {
-    if (outer.arg1.equals(inner.arg1) && outer.arg2.equals(inner.arg2)){
+    if (outer.arg1.equals(inner.arg1) &&
+        outer.arg2.equals(inner.arg2)){
       //println("args are exactly the same: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
       return false
     }
-    if (outer.arg1.equals(inner.arg2) && outer.arg2.equals(inner.arg1)){// && relationsAreMostlySame(inner.relHead, outer.relHead)){
+    if (outer.arg1.equals(inner.arg2) &&
+        outer.arg2.equals(inner.arg1)){// && relationsAreMostlySame(inner.relHead, outer.relHead)){
       //println("args are inverted but relations are same: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
       return false
     }
@@ -149,6 +152,12 @@ class RelgramsExtractor(window:Int) {
   }
 
 
+  def addToSentences(relationTuple: RelationTuple, sentence: String) {
+    relationTuple.sentences += sentence
+    if (relationTuple.sentences.size > 5){
+      relationTuple.sentences = relationTuple.sentences.drop(1)
+    }
+  }
 
   def extractRelgrams(inrecords:Seq[TypedTuplesRecord]) = {
     val records = inrecords
@@ -156,26 +165,37 @@ class RelgramsExtractor(window:Int) {
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
     var relationTuplesMap = new mutable.HashMap[String, RelationTuple]()
 
-    var prunedDocument = prunedRecords.iterator.map(record => record._1.sentence)
+    var offset = 0
+    val sentencesWithOffsets = prunedRecords.iterator.map(record => {
+      val curOffset = offset
+      offset = offset + record._1.sentence.length + 1
+      (record._1.sentence, curOffset)
+    }).toSeq
 
-    val mentions = resolver.clusters(prunedDocument.mkString("\n"))
+    import edu.washington.cs.knowitall.relgrams.utils.Pairable._
+    //val prunedRecordsWithStartOffsets = (prunedRecords pairElements sentencesWithOffsets)
+    val mentions = resolver.clusters(sentencesWithOffsets.map(x => x._1).mkString("\n"))
 
     prunedRecords.iterator.foreach(outerIndex => {
       val outer = outerIndex._1
       val oindex = outerIndex._2
+      val outerStartOffset = sentencesWithOffsets(oindex)._2
       val outerArg1s = (outer.arg1Head::Nil ++ outer.arg1Types).filter(oa1 => !oa1.trim.isEmpty).toSet
       val outerArg2s = (outer.arg2Head::Nil ++ outer.arg2Types).filter(oa1 => !oa1.trim.isEmpty).toSet
       val orel = outer.rel
-
+      var outerSentences = new mutable.HashSet[String]()
       prunedRecords.iterator.filter(innerIndex => (innerIndex._2 > oindex) && (innerIndex._2 <= oindex+window)).foreach(innerIndex => {
-        val countWindow = innerIndex._2-oindex
+        val iindex = innerIndex._2
+        val countWindow = iindex-oindex
         val inner = innerIndex._1
+        val innerStartOffset = sentencesWithOffsets(iindex)._2
         val innerArg1s = (inner.arg1Head::Nil ++ inner.arg1Types).filter(oa1 => !oa1.trim.isEmpty).toSet
         val innerArg2s = (inner.arg2Head::Nil ++ inner.arg2Types).filter(oa1 => !oa1.trim.isEmpty).toSet
-
+        var innerSentences = new mutable.HashSet[String]()
         outerArg1s.foreach(oa1 => {
           outerArg2s.foreach(oa2 => {
-            val first = relationTuplesMap.getOrElseUpdate(relationTupleKey(oa1, orel, oa2), new RelationTuple(oa1, orel, oa2, outer.hashes, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts)
+            val first = relationTuplesMap.getOrElseUpdate(relationTupleKey(oa1, orel, oa2), new RelationTuple(oa1, orel, oa2, outer.hashes, outerSentences, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts)
+            addToSentences(first, outer.sentence)
             addToArgCounts(first.arg1HeadCounts, outer.arg1Head)
             addToArgCounts(first.arg2HeadCounts, outer.arg2Head)
           })
@@ -183,17 +203,20 @@ class RelgramsExtractor(window:Int) {
 
         val irel = inner.rel
 
-        val corefArgs:Option[(String, String, String, String)] = CoreferringArguments.coreferringArgs(outer, inner, mentions)
+        val corefArgs:Option[(String, String, String, String)] = CoreferringArguments.coreferringArgs(outer, outerStartOffset, inner, innerStartOffset, mentions)
         /**corefArgs match {
           case Some(x:(String, String, String, String)) => println("corefs: " + x)
           case None => if (outer.arg2Head.contains("measure")) { println("Failed coref: " + outer + "\n" + inner )}
         }*/
         outerArg1s.foreach(oa1 => {
           outerArg2s.foreach(oa2 => {
-            val first = relationTuplesMap.getOrElseUpdate(relationTupleKey(oa1, orel, oa2), new RelationTuple(oa1, orel, oa2, outer.hashes, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts)
+            val first = relationTuplesMap.getOrElseUpdate(relationTupleKey(oa1, orel, oa2), new RelationTuple(oa1, orel, oa2, outer.hashes, outerSentences, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts)
             innerArg1s.foreach(ia1 => {
               innerArg2s.foreach(ia2 => {
-                val second = relationTuplesMap.getOrElseUpdate(relationTupleKey(ia1, irel, ia2), new RelationTuple(ia1, irel, ia2, inner.hashes, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts)
+                val second = relationTuplesMap.getOrElseUpdate(relationTupleKey(ia1, irel, ia2), new RelationTuple(ia1, irel, ia2, inner.hashes, innerSentences, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts)
+                addToArgCounts(second.arg1HeadCounts, inner.arg1Head)
+                addToArgCounts(second.arg2HeadCounts, inner.arg2Head)
+                addToSentences(second, inner.sentence)
                 val rgc = relgramCountsMap.getOrElseUpdate(relgramKey(first, second),
                   new RelgramCounts(new Relgram(first, second),
                                     new scala.collection.mutable.HashMap[Int, Int],
@@ -209,21 +232,25 @@ class RelgramsExtractor(window:Int) {
                     val insa1 = x._3
                     val insa2 = x._4
                     def isType(string:String) = string.startsWith("Type:")
+                    def isVar(string:String) = string.equals(CoreferringArguments.XVAR)
+                    val fa1 = if (isVar(infa1) && isType(oa1)) infa1 + ':' + oa1 else infa1
+                    val fa2 = if (isVar(infa2) && isType(oa2)) infa2 + ':' + oa2 else infa2
+                    val sa1 = if (isVar(insa1) && isType(ia1)) insa1 + ':' + ia1 else insa1
+                    val sa2 = if (isVar(insa2) && isType(ia2)) insa2 + ':' + ia2 else insa2
 
-                    val fa1 = if (isType(oa1)) infa1 + ':' + oa1 else infa1
-                    val fa2 = if (isType(oa2)) infa2 + ':' + oa2 else infa2
-                    val sa1 = if (isType(ia1)) insa1 + ':' + ia1 else insa1
-                    val sa2 = if (isType(ia2)) insa2 + ':' + ia2 else insa2
-
-                    println("corefs: " + x)
 
                     val firstCoref = relationTuplesMap.getOrElseUpdate(relationTupleKey(fa1, orel, fa2),
-                      new RelationTuple(fa1, orel, fa2, outer.hashes, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts))
+                      new RelationTuple(fa1, orel, fa2, outer.hashes, outerSentences, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts))
+                    addToArgCounts(firstCoref.arg1HeadCounts, outer.arg1Head)
+                    addToArgCounts(firstCoref.arg2HeadCounts, outer.arg2Head)
+                    addToSentences(firstCoref, outer.sentence)
 
                     val secondCoref = relationTuplesMap.getOrElseUpdate(relationTupleKey(sa1, irel, sa2),
-                       new RelationTuple(sa1, irel, sa2, inner.hashes, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts))
+                       new RelationTuple(sa1, irel, sa2, inner.hashes, innerSentences, new mutable.HashMap[String, Int], new mutable.HashMap[String, Int]()))//new RelationTuple(oa1, outer.relHead, oa2, outer.hashes, arg1HeadCounts, arg2HeadCounts))
 
-                    println("Adding relgram with key: " + relgramKey(firstCoref, secondCoref))
+                    addToArgCounts(secondCoref.arg1HeadCounts, inner.arg1Head)
+                    addToArgCounts(secondCoref.arg2HeadCounts, inner.arg2Head)
+                    addToSentences(secondCoref, outer.sentence)
                     val corefRgc = relgramCountsMap.getOrElseUpdate(relgramKey(firstCoref, secondCoref),
                       new RelgramCounts(new Relgram(firstCoref, secondCoref),
                         new scala.collection.mutable.HashMap[Int, Int],
