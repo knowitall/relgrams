@@ -27,35 +27,40 @@ object CoreferringArguments {
                                                        .filter(mentionList => mentionList.find(mention => !mention.charInterval.disjoint(interval)) != None)
                                                        .map(mentionList => mentionList.map(m => m))//.charInterval.toString()))
 
+
     val fa1Mentions = mentionStrings(outer.arg1HeadInterval.shift(outerStartOffset)).flatMap(mlist => mlist.map(m => m.text + ":" + m.charInterval.toString)).toSet
     val fa2Mentions = mentionStrings(outer.arg2HeadInterval.shift(outerStartOffset)).flatMap(mlist => mlist.map(m => m.text + ":" + m.charInterval.toString)).toSet
     val sa1Mentions = mentionStrings(inner.arg1HeadInterval.shift(innerStartOffset)).flatMap(mlist => mlist.map(m => m.text + ":"  + m.charInterval.toString)).toSet
     val sa2Mentions = mentionStrings(inner.arg2HeadInterval.shift(innerStartOffset)).flatMap(mlist => mlist.map(m => m.text + ":" + m.charInterval.toString)).toSet
 
-    println(mentionStrings(outer.arg1HeadInterval.shift(outerStartOffset)).flatMap(mlist => mlist.map(m => m.text)).toSet)
-    println(mentionStrings(outer.arg2HeadInterval.shift(outerStartOffset)).flatMap(mlist => mlist.map(m => m.text)).toSet)
-    println(mentionStrings(inner.arg1HeadInterval.shift(innerStartOffset)).flatMap(mlist => mlist.map(m => m.text)).toSet)
-    println(mentionStrings(inner.arg2HeadInterval.shift(innerStartOffset)).flatMap(mlist => mlist.map(m => m.text)).toSet)
+    val fa1Strings = mentionStrings(outer.arg1HeadInterval.shift(outerStartOffset)).flatMap(mlist => mlist.map(m => m.text + ":" + m.charInterval.toString)).toSet
+    val fa2Strings = mentionStrings(outer.arg2HeadInterval.shift(outerStartOffset)).flatMap(mlist => mlist.map(m => m.text + ":" + m.charInterval.toString)).toSet
+    val sa1Strings = mentionStrings(inner.arg1HeadInterval.shift(innerStartOffset)).flatMap(mlist => mlist.map(m => m.text + ":" + m.charInterval.toString)).toSet
+    val sa2Strings = mentionStrings(inner.arg2HeadInterval.shift(innerStartOffset)).flatMap(mlist => mlist.map(m => m.text+ ":" + m.charInterval.toString)).toSet
 
     val fa1sa1 = fa1Mentions.intersect(sa1Mentions)
     if (!fa1sa1.isEmpty) {
-      //println("fa1sa1: " + fa1sa1)
-      return Some((XVAR, outer.arg2Head, XVAR, inner.arg2Head))
+      println("fa1sa1: " + fa1sa1)
+      println("fa1sa1: " + fa1Strings + " and " + sa1Strings)
+      return Some((XVAR + ":" + outer.arg1, outer.arg2Head, XVAR + ":" + inner.arg1, inner.arg2Head))
     }
     val fa1sa2 = fa1Mentions.intersect(sa2Mentions)
     if (!fa1sa2.isEmpty) {
-      //println("fa1sa2: " + fa1sa2)
-      return Some((XVAR, outer.arg2Head, inner.arg1Head, XVAR))
+      println("fa1sa2: " + fa1sa2)
+      println("fa1sa2: " + fa1Strings + " and " + sa2Strings)
+      return Some((XVAR + ":" + outer.arg1, outer.arg2Head, inner.arg1Head, XVAR + ":" + inner.arg2))
     }
     val fa2sa1 = fa2Mentions.intersect(sa1Mentions)
     if (!fa2sa1.isEmpty){
-      //println("f2sa1: " + fa2sa1)
-      return Some((outer.arg1Head, XVAR, XVAR, inner.arg2Head))
+      println("f2sa1: " + fa2sa1)
+      println("fa2sa1: " + fa2Strings + " and " + sa1Strings)
+      return Some((outer.arg1Head, XVAR + ":" + outer.arg2, XVAR + ":" + inner.arg1, inner.arg2Head))
     }
     val fa2sa2 = fa2Mentions.intersect(sa2Mentions)
     if (!fa2sa2.isEmpty){
-      //println("fa1sa2: " + fa2sa2)
-      return Some((outer.arg1Head, XVAR, inner.arg1Head, XVAR))
+      println("fa1sa2: " + fa2sa2)
+      println("fa1sa2: " + fa2Strings + " and " + sa2Strings)
+      return Some((outer.arg1Head, XVAR + ":" + outer.arg2, inner.arg1Head, XVAR + ":" + inner.arg2))
     }
     None
   }

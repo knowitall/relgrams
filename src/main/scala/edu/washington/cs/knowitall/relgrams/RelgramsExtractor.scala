@@ -42,7 +42,7 @@ class RelgramsExtractor(window:Int) {
       return false
     }
     if(inner.subsumes(outer) || outer.subsumes(inner)){
-      //println("subsumes: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
+      println("subsumes: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
       return false
     }
     return true
@@ -250,7 +250,7 @@ class RelgramsExtractor(window:Int) {
 
                     addToArgCounts(secondCoref.arg1HeadCounts, inner.arg1Head)
                     addToArgCounts(secondCoref.arg2HeadCounts, inner.arg2Head)
-                    addToSentences(secondCoref, outer.sentence)
+                    addToSentences(secondCoref, inner.sentence)
                     val corefRgc = relgramCountsMap.getOrElseUpdate(relgramKey(firstCoref, secondCoref),
                       new RelgramCounts(new Relgram(firstCoref, secondCoref),
                         new scala.collection.mutable.HashMap[Int, Int],

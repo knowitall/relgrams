@@ -147,6 +147,7 @@ object RelgramCounts{
 case class RelgramCounts(relgram:Relgram, counts:scala.collection.mutable.Map[Int, Int], argCounts:ArgCounts){
 
 
+
   def prettyString:String = "%s\t%s\t%s".format(relgram.prettyString,
                                                  toCountsString(counts.toMap),
                                                  argCounts.toString)
