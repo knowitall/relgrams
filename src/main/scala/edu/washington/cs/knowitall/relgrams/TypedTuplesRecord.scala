@@ -109,22 +109,15 @@ case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:I
   textSpan(arg1, arg1Interval), textSpan(rel, relInterval), textSpan(arg2, arg2Interval),
   textSpan(arg1Head, arg1HeadInterval), textSpan(relHead, relHeadInterval), textSpan(arg2Head, arg2HeadInterval),
   arg1Types.mkString(","), arg2Types.mkString(","))
-  //check if 'this' current record is within a window distance from 'that'
-  def isWithinWindow(that:TypedTuplesRecord, window:Int): Boolean = {
-    (this.extrid > that.extrid) && ((this.extrid - that.extrid) <= window)
-    //(inner.eid > outer.eid) && ((inner.sentenceid - outer.sentenceid) < eid)
-  }
+
   //This is probably extreme!
   val beVerbPPRemoveRe = """be (.*?) (.+$)""".r
   val beRemoveRe = """be (.*)""".r
-  def cleanRelString(rel:String): String = {
-    var m = beVerbPPRemoveRe.findFirstMatchIn(rel)
-    if ( m != None) {
-      m.get.group(1)
-    } else {
-      rel.replaceAll("""^be """, "")
-    }
+  def cleanRelString(rel:String): String = beVerbPPRemoveRe.findFirstMatchIn(rel) match {
+    case Some(m:Match) => m.group(1)
+    case None => rel.replaceAll("""^be """, "")
   }
+
   def normTupleString(): String = {
     arg1Head + " " + cleanRelString(relHead) + " " + arg2Head
   }
@@ -132,7 +125,14 @@ case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:I
   def setSubsumption(awords: Array[String], bwords: Array[String]): Boolean = {
     awords.toSet.subsetOf(bwords.toSet)
   }
-  def subsumes(that: TypedTuplesRecord):Boolean = {
+  def subsumesOrSubsumedBy(that:TypedTuplesRecord) = {
+    val thisString = this.normTupleString()
+    val thatString = that.normTupleString()
+    thisString.contains(thatString) ||
+    thatString.contains(thisString) ||
+    setSubsumption(thisString.split(" "), thatString.split(" "))
+  }
+  /**def subsumes(that: TypedTuplesRecord):Boolean = {
     val thisString = this.normTupleString()
     val thatString = that.normTupleString()
     val subsumesVal = thisString.contains(thatString) ||
@@ -140,5 +140,5 @@ case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:I
                       setSubsumption(thisString.split(" "), thatString.split(" "))
     return subsumesVal
 
-  }
+  }*/
 }

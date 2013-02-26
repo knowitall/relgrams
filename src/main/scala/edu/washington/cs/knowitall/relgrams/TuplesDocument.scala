@@ -44,10 +44,11 @@ object TuplesDocumentGenerator{
 
   //Two relations are different as long as they are between different arguments.
   def areDifferentRelations(outer: TypedTuplesRecord, inner: TypedTuplesRecord): Boolean = {
-    def sameArgs(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.arg1.equals(y.arg1) && x.arg2.equals(y.arg2)
+    def sameArgs(x:TypedTuplesRecord, y:TypedTuplesRecord)     = x.arg1.equals(y.arg1) && x.arg2.equals(y.arg2)
     def switchedArgs(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.arg1.equals(y.arg2) && x.arg2.equals(y.arg1)
-    def subsumes(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.subsumes(y) || y.subsumes(x)
-    !sameArgs(outer, inner) && !switchedArgs(outer, inner) && !subsumes(outer, inner)
+    def subsumedArgs(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.subsumesOrSubsumedBy(y)
+
+    !sameArgs(outer, inner) && !switchedArgs(outer, inner) && !subsumedArgs(outer, inner)
   }
 
 
@@ -92,8 +93,7 @@ object TuplesDocumentGenerator{
     records.iterator.copyToBuffer(outRecords)
     records.iterator.foreach(outer => {
       records.iterator.filter(inner => (inner.extrid != outer.extrid)).foreach(inner => {
-        if(areDifferentRelations(outer, inner) == false){
-
+        if(!areDifferentRelations(outer, inner)){
           val removeRecord = if((outer.arg1Head + outer.relHead + outer.arg2Head).size > (inner.arg1Head + inner.relHead + inner.arg2Head).size) {
             inner
           }else{
@@ -210,9 +210,7 @@ case class TuplesDocumentWithCorefMentions(tuplesDocument:TuplesDocument,
                                            mentions:Map[Mention, List[Mention]]){
   import TuplesDocumentWithCorefMentions._
   override def toString:String = {
-    val out = "%s%s%s%s%s".format(tuplesDocument.toString(), tdocsep, sentenceOffsets.mkString(","), tdocsep, MentionIO.mentionsMapString(mentions))
-    println("Out: " + out)
-    out
+    "%s%s%s%s%s".format(tuplesDocument.toString(), tdocsep, sentenceOffsets.mkString(","), tdocsep, MentionIO.mentionsMapString(mentions))
   }
 }
 
