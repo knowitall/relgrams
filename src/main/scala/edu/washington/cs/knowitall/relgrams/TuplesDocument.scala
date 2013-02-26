@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory
 import com.nicta.scoobi.core.WireFormat
 import java.io.{DataInput, DataOutput}
 
+
 /**
  * Created with IntelliJ IDEA.
  * User: niranjan
@@ -17,10 +18,19 @@ import java.io.{DataInput, DataOutput}
  * To change this template use File | Settings | File Templates.
  */
 
-
 object TuplesDocumentGenerator{
 
+}
+
+class TuplesDocumentGenerator {
+
   var resolveWithTimeout = runWithTimeout(10) _
+  val resolvers = new mutable.HashMap[Thread,StanfordCoreferenceResolver] with mutable.SynchronizedMap[Thread, StanfordCoreferenceResolver]
+  def this(timeout:Int) = {
+    this()
+    setTimeout(timeout)
+  }
+
   import scala.actors.Futures._
   def runWithTimeout(timeoutMs: Long)(f: => Map[Mention, List[Mention]]) : Option[Map[Mention, List[Mention]]] = {
     awaitAll(timeoutMs, future(f)).head.asInstanceOf[Option[Map[Mention, List[Mention]]]]
@@ -32,8 +42,8 @@ object TuplesDocumentGenerator{
   }
 
 
-  val resolver = new StanfordCoreferenceResolver()
-  println(resolver.clusters("This is a test of stanford."))
+  //val resolver = new StanfordCoreferenceResolver()
+  //println(resolver.clusters("This is a test of stanford."))
   def getPrunedDocument(docid: String, records: Seq[TypedTuplesRecord]): TuplesDocument = {
     val prunedSortedRecords = pruneRecordsAndIndex(records).sortBy(x => x._2).map(x => x._1)
     new TuplesDocument(docid, prunedSortedRecords)
@@ -61,14 +71,15 @@ object TuplesDocumentGenerator{
    out
   } */
 
-  def resolve(sentences:List[String]) =  {
+  def resolve(sentences:List[String]):Option[Map[Mention, List[Mention]]] =  {
+    val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
     resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
   }
   def getTuplesDocumentWithCorefMentionsBlocks(document:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
 
     val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
     val start = System.currentTimeMillis()
-    val mentionsOption = if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
+    val mentionsOption = resolve(sentences)//if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
     val end = System.currentTimeMillis()
     println("Time to process %d sentences %.2f seconds".format(sentences.size, (end-start)/(1000.0)))
     val out = mentionsOption match {
@@ -84,6 +95,7 @@ object TuplesDocumentGenerator{
   }
 
   def resolveInBlocks(document:TuplesDocument, sentences:List[String], offsets:List[Int]):Option[Map[Mention, List[Mention]]] = {
+    val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
     def shiftMention(mention:Mention, by:Int):Mention = new Mention(mention.text, mention.offset + by)
     val blocks = sentenceBlocksWithOffsets(document, sentences, offsets)
     val mentions:Map[Mention, List[Mention]] = blocks.flatMap(block => {
@@ -337,18 +349,20 @@ case class TuplesDocument (docid:String, tupleRecords:Seq[TypedTuplesRecord]) {
 object CorefDocumentTester{
   val logger = LoggerFactory.getLogger(this.getClass)
   def main(args:Array[String]){
+
+    val tgen = new TuplesDocumentGenerator(args(1).toInt)
     val tupleDocuments = Source.fromFile(args(0)).getLines()
                                .flatMap(line =>TypedTuplesRecord.fromString(line)).toSeq
                                .groupBy(record => record.docid)
-                               .map(kv => TuplesDocumentGenerator.getPrunedDocument(kv._1, kv._2))
+                               .map(kv => tgen.getPrunedDocument(kv._1, kv._2))
 
     println("Size of tupleDocuments: " + tupleDocuments.size)
     tupleDocuments.foreach(td => TuplesDocument.fromString(td.toString()) match {
       case Some(m:TuplesDocument) => println("Success.")
       case None => println("failure on tdm: " + td.docid)
     })
-    TuplesDocumentGenerator.setTimeout(args(1).toInt)
-    val tdmSeq = tupleDocuments.flatMap(td => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentionsBlocks(td))
+
+    val tdmSeq = tupleDocuments.flatMap(td => tgen.getTuplesDocumentWithCorefMentionsBlocks(td))
     tdmSeq.foreach(tdm=> TuplesDocumentWithCorefMentions.fromString(tdm.toString()) match {
       case Some(tdm:TuplesDocumentWithCorefMentions) => println("Success 2.")
       case None => println("Failure on tdm2: " + tdm.tuplesDocument.docid)

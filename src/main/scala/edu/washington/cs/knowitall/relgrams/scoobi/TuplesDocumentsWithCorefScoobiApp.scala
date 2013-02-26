@@ -62,7 +62,7 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
     }
 
     if (!parser.parse(args)) return
-    TuplesDocumentGenerator.setTimeout(corefTimeoutMs)
+    val tgen = new TuplesDocumentGenerator(corefTimeoutMs)
     import TuplesDocument._
     if (!fromDocs){
 
@@ -71,7 +71,7 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
       val tupledocuments = TextInput.fromTextFile(inputPath)
                                               .flatMap(line =>TypedTuplesRecord.fromString(line))
                                               .groupBy(record => record.docid)
-                                              .map(x => TuplesDocumentGenerator.getPrunedDocument(x._1, x._2.toSeq))
+                                              .map(x => tgen.getPrunedDocument(x._1, x._2.toSeq))
       export(tupledocuments, outputPath)
     }else if (fromDocs) {
       println("Building TupleDocumentsWithCorefMentions.")
@@ -85,7 +85,7 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
                                                 case None => None
                                               })
 
-      val tupleDocumentsWithCorefs = tupleDocuments.flatMap(document => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentionsBlocks(document))
+      val tupleDocumentsWithCorefs = tupleDocuments.flatMap(document => tgen.getTuplesDocumentWithCorefMentionsBlocks(document))
 
       exportWithCorefs(tupleDocumentsWithCorefs, outputPath)
 

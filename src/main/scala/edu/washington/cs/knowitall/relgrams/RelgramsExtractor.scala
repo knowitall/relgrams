@@ -27,7 +27,7 @@ class RelgramsExtractor(maxWindow:Int) {
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  val resolver = new StanfordCoreferenceResolver()
+  //val resolver = new StanfordCoreferenceResolver()
 
 
 
@@ -162,8 +162,8 @@ class RelgramsExtractor(maxWindow:Int) {
 
   }
 
-  import TuplesDocumentGenerator._
-  def extractRelgrams(inrecords:Seq[TypedTuplesRecord]):Map[String, RelgramCounts] = {
+  //import TuplesDocumentGenerator._
+ /** def extractRelgrams(inrecords:Seq[TypedTuplesRecord]):Map[String, RelgramCounts] = {
     val records = inrecords
     val prunedRecords = pruneRecordsAndIndex(records)
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
@@ -279,10 +279,7 @@ class RelgramsExtractor(maxWindow:Int) {
       })
     })
     relgramCountsMap.toMap
-  }
-
-
-
+  } */
 
   def addToArgCounts(counts: mutable.Map[String, Int], headValue: String) {
     val count = counts.getOrElseUpdate(headValue, 0)

@@ -41,7 +41,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
              .flatMap(line =>TypedTuplesRecord.fromString(line))
              .groupBy(record => record.docid)
   }
-  def groupDocsAndExtract(inputPath:String, outputPath:String) = {
+ /** def groupDocsAndExtract(inputPath:String, outputPath:String) = {
 
     val groupedRecords = groupedTypedTuplesRecord(inputPath)
     val relgramCounts = groupedRecords.flatMap(kv => {
@@ -56,7 +56,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     }).groupByKey[String, RelgramCounts]
 
     reduceRelgramCounts(relgramCounts)
-  }
+  }   */
 
 
   def export(relgramCounts: DList[RelgramCounts], outputPath: String){
