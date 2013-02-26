@@ -69,6 +69,8 @@ object TuplesDocumentGenerator{
     val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
     val start = System.currentTimeMillis()
     val mentionsOption = if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
+    val end = System.currentTimeMillis()
+    println("Time to process %d sentences %.2f seconds".format(sentences.size, (end-start)/(1000.0)))
     val out = mentionsOption match {
       case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
       case None => {
@@ -77,8 +79,7 @@ object TuplesDocumentGenerator{
         None  //Testing this for timeout.
       }
     }
-    val end = System.currentTimeMillis()
-    println("Time to process %d sentences %.2f seconds".format(sentences.size, (end-start)/(1000.0)))
+
     out
   }
 
