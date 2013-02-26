@@ -73,7 +73,8 @@ object TuplesDocumentGenerator{
       case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
       case None => {
         println("Timing out document: " + document.docid + ". No mentions added.")
-        Some(new TuplesDocumentWithCorefMentions(document, offsets, Map[Mention, List[Mention]]()))
+        //Some(new TuplesDocumentWithCorefMentions(document, offsets, Map[Mention, List[Mention]]()))
+        None  //Testing this for timeout.
       }
     }
     //val end = System.currentTimeMillis()
