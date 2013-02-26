@@ -18,122 +18,17 @@ import java.io.PrintWriter
 import org.slf4j.LoggerFactory
 import scala.Predef._
 import scala.{collection, Some}
-import edu.washington.cs.knowitall.tool.coref.StanfordCoreferenceResolver
+import edu.washington.cs.knowitall.tool.coref.{Mention, StanfordCoreferenceResolver}
 import scala.collection
 
 
-class RelgramsExtractor(window:Int) {
+class RelgramsExtractor(maxWindow:Int) {
 
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
   val resolver = new StanfordCoreferenceResolver()
 
-  //Two relations are different as long as they are between different arguments.
-  def areDifferentRelations(outer: TypedTuplesRecord, inner: TypedTuplesRecord): Boolean = {
-    if (outer.arg1.equals(inner.arg1) &&
-        outer.arg2.equals(inner.arg2)){
-      //println("args are exactly the same: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
-      return false
-    }
-    if (outer.arg1.equals(inner.arg2) &&
-        outer.arg2.equals(inner.arg1)){// && relationsAreMostlySame(inner.relHead, outer.relHead)){
-      //println("args are inverted but relations are same: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
-      return false
-    }
-    if(inner.subsumes(outer) || outer.subsumes(inner)){
-      println("subsumes: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
-      return false
-    }
-    return true
-  }
-
-
-  //Filter typed tuples and sort them in the order of occurrence in text.
-  def removeNonAlphaNumericRecords(sRecords:Seq[TypedTuplesRecord]):Seq[TypedTuplesRecord] = {
-
-    val hasAlphabetOrDigitRe = """[a-zA-Z0-9]""".r
-    def specialCharsOnly(string:String) = hasAlphabetOrDigitRe.findFirstIn(string) == None
-    def isGoodExtraction(record: TypedTuplesRecord):Boolean = {
-
-      if(specialCharsOnly(record.arg1Head)) return false
-      if(specialCharsOnly(record.rel)) return false
-      if(specialCharsOnly(record.arg2Head)) return false
-
-      return true
-    }
-    sRecords.filter(record => isGoodExtraction(record))
-  }
-  def sortValue(record: TypedTuplesRecord): Int = {
-    record.sentid * 1000 + record.extrid
-  }
-
-  val beVerbs = ("be"::"is"::"was"::"are"::"were"::Nil).toSet
-  def rewriteBeVerbs(text: String): String = text.split(" ").map(word => if(beVerbs.contains(word)) "be" else word).mkString(" ")
-
-  val hasVerbs = ("has"::"have"::"had"::"having"::Nil).toSet
-  def rewriteBeAndHasVerbs(text: String): String = {
-    text.split(" ").map(word => if(hasVerbs.contains(word)) "had" else if(beVerbs.contains(word)) "be" else word).mkString(" ")
-  }
-
-
-  def isReportingVerbRelation(rel:String) = !reportingVerbs.intersect(rel.split(" ").toSet).isEmpty
-  val reportingVerbs = ("say"::"said"::"saying"::"tell"::"told"::"speak"::"spoke"::Nil).toSet
-  def isBeRelation(rel:String) = rel.equals("be")
-  def isHadRelation(rel:String) = rel.equals("had") || rel.equals("had had")
-
-  def removeReportingAndBeHadRelations(records: Seq[TypedTuplesRecord]): Seq[TypedTuplesRecord] = {
-    records.filterNot(record => isReportingVerbRelation(record.relHead) || isBeRelation(record.relHead) || isHadRelation(record.relHead))
-  }
-
-  def removeMoreThanXWordRelations(records: Seq[TypedTuplesRecord], x:Int): Seq[TypedTuplesRecord] = records.filter(record => record.relHead.split(" ").size <= x)
-
-  def findAndRemoveRedundantRecords(records: Seq[TypedTuplesRecord]):Seq[TypedTuplesRecord] = {
-
-    val outRecords = new ArrayBuffer[TypedTuplesRecord]()
-    records.iterator.copyToBuffer(outRecords)
-    records.iterator.foreach(outer => {
-      records.iterator.filter(inner => (inner.extrid != outer.extrid)).foreach(inner => {
-        if(areDifferentRelations(outer, inner) == false){
-
-          val removeRecord = if((outer.arg1Head + outer.relHead + outer.arg2Head).size > (inner.arg1Head + inner.relHead + inner.arg2Head).size) {
-            inner
-          }else{
-            outer
-          }
-          outRecords -= removeRecord
-        }
-      })
-    })
-    if(outRecords.size == records.size) return outRecords else findAndRemoveRedundantRecords(outRecords)
-    return outRecords
-  }
-
-  def removeRedundantRecords(records: Seq[TypedTuplesRecord]): Seq[TypedTuplesRecord] = {
-    val groupedRecords = new HashMap[Int, ArrayBuffer[TypedTuplesRecord]]()
-
-    records.foreach(record => groupedRecords.getOrElseUpdate(record.sentid, new ArrayBuffer[TypedTuplesRecord]) += record)
-    var outRecords = mutable.Seq[TypedTuplesRecord]()
-    groupedRecords.keys.foreach(key => {
-      val grecords = groupedRecords(key)
-      if(grecords.size > 1){
-        val prunedRecords = findAndRemoveRedundantRecords(grecords)
-        outRecords ++= prunedRecords
-      }else{
-        outRecords ++= grecords
-      }
-
-    })
-    return outRecords
-  }
-
-  def pruneRecordsAndIndex(sRecords:Seq[TypedTuplesRecord]):Seq[(TypedTuplesRecord, Int)] = {
-  var ssRecords = removeNonAlphaNumericRecords(sRecords)
-  ssRecords = removeMoreThanXWordRelations(ssRecords, 7)
-  ssRecords = removeRedundantRecords(ssRecords)
-  ssRecords.foreach(record => record.relHead = rewriteBeAndHasVerbs(record.relHead))
-  return removeReportingAndBeHadRelations(ssRecords).sortBy(record => sortValue(record)).zipWithIndex
-  }
 
 
   def relationTupleKey(arg1: String, rel: String, arg2: String): String = "%s\t%s\t%s".format(arg1, rel, arg2)
@@ -159,7 +54,8 @@ class RelgramsExtractor(window:Int) {
     }
   }
 
-  def extractRelgrams(inrecords:Seq[TypedTuplesRecord]) = {
+  import TuplesDocumentGenerator._
+  def extractRelgrams(inrecords:Seq[TypedTuplesRecord]):Map[String, RelgramCounts] = {
     val records = inrecords
     val prunedRecords = pruneRecordsAndIndex(records)
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
@@ -174,7 +70,7 @@ class RelgramsExtractor(window:Int) {
 
     import edu.washington.cs.knowitall.relgrams.utils.Pairable._
     //val prunedRecordsWithStartOffsets = (prunedRecords pairElements sentencesWithOffsets)
-    val mentions = resolver.clusters(sentencesWithOffsets.map(x => x._1).mkString("\n"))
+    val mentions:Map[Mention, List[Mention]] = resolver.clusters(sentencesWithOffsets.map(x => x._1).mkString("\n"))
 
     prunedRecords.iterator.foreach(outerIndex => {
       val outer = outerIndex._1
@@ -184,7 +80,7 @@ class RelgramsExtractor(window:Int) {
       val outerArg2s = (outer.arg2Head::Nil ++ outer.arg2Types).filter(oa1 => !oa1.trim.isEmpty).toSet
       val orel = outer.rel
       var outerSentences = new mutable.HashSet[String]()
-      prunedRecords.iterator.filter(innerIndex => (innerIndex._2 > oindex) && (innerIndex._2 <= oindex+window)).foreach(innerIndex => {
+      prunedRecords.iterator.filter(innerIndex => (innerIndex._2 > oindex) && (innerIndex._2 <= oindex+maxWindow)).foreach(innerIndex => {
         val iindex = innerIndex._2
         val countWindow = iindex-oindex
         val inner = innerIndex._1
@@ -274,7 +170,7 @@ class RelgramsExtractor(window:Int) {
 
       })
     })
-    relgramCountsMap
+    relgramCountsMap.toMap
   }
 
 

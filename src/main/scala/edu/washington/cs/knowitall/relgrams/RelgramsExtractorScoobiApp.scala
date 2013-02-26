@@ -18,92 +18,45 @@ import utils.MapUtils
 import com.nicta.scoobi.Persist._
 import scopt.mutable.OptionParser
 import org.slf4j.LoggerFactory
+import collection.mutable.{HashMap, ArrayBuffer}
+import collection.mutable
 
 
 object RelgramsExtractorScoobiApp extends ScoobiApp{
 
+  import TuplesDocumentGenerator._
+  import TypedTuplesRecord._
+  import RelgramCounts._
+
 
   val logger = LoggerFactory.getLogger(this.getClass)
+  val extractor = new RelgramsExtractor(maxWindow = 10)
+  val counter = new RelgramsCounter
 
 
   def reduceRelgramCounts(groupedRelgramCounts: DList[(String, Iterable[RelgramCounts])]):DList[RelgramCounts] = {
-    groupedRelgramCounts.flatMap(grgc => reduceRelgramCounts(grgc._2))
-  }
-
-  def haveDisjointHashes(mergeWith: RelgramCounts, toMerge: RelgramCounts): Boolean = {
-    val a1 = mergeWith.relgram.first.hashes
-    val a2 = mergeWith.relgram.second.hashes
-    val b1 = toMerge.relgram.first.hashes
-    val b2 = toMerge.relgram.second.hashes
-    !(a1 exists b1) && !(a2 exists b2)
-  }
-
-  def updateHashes(mergeWith: RelgramCounts, toMerge: RelgramCounts){
-    mergeWith.relgram.first.hashes ++= toMerge.relgram.first.hashes
-    mergeWith.relgram.second.hashes ++= toMerge.relgram.second.hashes
-  }
-
-  def mergeArgCounts(mergeWith: RelgramCounts, toMerge: RelgramCounts) {
-    MapUtils.addTo(mergeWith.argCounts.firstArg1Counts, toMerge.argCounts.firstArg1Counts)
-    MapUtils.addTo(mergeWith.argCounts.firstArg2Counts, toMerge.argCounts.firstArg2Counts)
-    MapUtils.addTo(mergeWith.argCounts.secondArg1Counts, toMerge.argCounts.secondArg1Counts)
-    MapUtils.addTo(mergeWith.argCounts.secondArg1Counts, toMerge.argCounts.secondArg2Counts)
-  }
-
-  def mergeCounts(mergeWith: RelgramCounts, toMerge: RelgramCounts){
-    MapUtils.addTo(mergeWith.counts, toMerge.counts)
-  }
-
-  def merge(mergeWith: RelgramCounts, toMerge: RelgramCounts){
-
-    if(haveDisjointHashes(mergeWith, toMerge)){
-      updateHashes(mergeWith, toMerge)
-      mergeArgCounts(mergeWith, toMerge)
-      mergeCounts(mergeWith, toMerge)
-    }else{
-      println("Not merging1: " + mergeWith)
-      println("Not merging2: " + toMerge)
-    }
-
-
-  }
-
-  def reduceRelgramCounts(rgcs:Iterable[RelgramCounts]) = {
-    var outRGC:RelgramCounts = null
-    rgcs.filter(rgc => {
-      val filterVal = !RelgramCounts.isDummy(rgc)
-      if(filterVal == false){
-        println("Ignoring dummy rgc: " + rgc)
-      }
-      filterVal
-    }).foreach(rgc => {
-      if (outRGC == null){
-        outRGC = rgc
-      }else{
-        merge(outRGC, rgc)
-      }
-    })
-    println("outrgc: " + outRGC.prettyString)
-    if(outRGC != null) Some(outRGC) else None
+    groupedRelgramCounts.flatMap(x => counter.reduceRelgramCounts(x._2))
   }
 
 
-  val relgramsExtractor = new RelgramsExtractor(10)
+  def groupedTypedTuplesRecord(inputPath:String) = {
+    //import TypedTuplesRecord._
+    TextInput.fromTextFile(inputPath)
+             .flatMap(line =>TypedTuplesRecord.fromString(line))
+             .groupBy(record => record.docid)
+  }
   def groupDocsAndExtract(inputPath:String, outputPath:String) = {
-    import TypedTuplesRecord._
-    val lines = TextInput.fromTextFile(inputPath)
 
-    val groupedRecords = lines.flatMap(line => {
-                                    //println("line: " + line)
-                                    val recordOption = TypedTuplesRecord.fromString(line)
-                                    //println("Read record: " + recordOption)
-                                    recordOption
-                                  }).groupBy(record => record.docid)
-
-    import RelgramCounts._
+    val groupedRecords = groupedTypedTuplesRecord(inputPath)
     val relgramCounts = groupedRecords.flatMap(kv => {
+      val docid = kv._1
       val records = kv._2
-      relgramsExtractor.extractRelgrams(records.toSeq).map(stringRGC => (stringRGC._1, stringRGC._2))
+      try{
+        extractor.extractRelgrams(records.toSeq)
+                 .map(x => (x._1, x._2))
+      }catch{
+        case e:Exception => { logger.error("Failed to extract relgrams from docid %s with exception:\n%s".format(docid, e.toString)); None}
+      }
     }).groupByKey[String, RelgramCounts]
 
     reduceRelgramCounts(relgramCounts)
@@ -137,8 +90,6 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     if (!parser.parse(args)) return
     println("InputPath: " + inputPath)
     val relgramCounts = groupDocsAndExtract(inputPath, outputPath)
-    //println(relgramCounts.length.m.toString)
     export(relgramCounts, outputPath)
-
   }
 }
