@@ -76,7 +76,10 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
       applogger.info("Building TupleDocumentsWithCorefMentions.")
       val tupleDocuments = TextInput.fromTextFile(inputPath)
                                               .flatMap(line => TuplesDocument.fromString(line) match {
-                                                case Some(x:TuplesDocument) => if(x.tupleRecords.size <= 100) Some(x) else None
+                                                case Some(x:TuplesDocument) => if(x.tupleRecords.size <= 100) Some(x) else {
+                                                  println("Ignoring document: %s with size %d".format(x.docid, x.tupleRecords.size))
+                                                  None
+                                                }
                                                 case None => None
                                               })
 
