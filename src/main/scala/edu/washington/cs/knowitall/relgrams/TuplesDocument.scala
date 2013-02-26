@@ -164,11 +164,12 @@ object TuplesDocumentWithCorefMentions{
           Some(new TuplesDocumentWithCorefMentions(tuplesDocument, sentenceOffsets, mentions))
         }
         case None => {
-          logger.error("Failed to construct TuplesDocument from string: " + splits(0))
+          println("Failed to construct TuplesDocument from string: " + splits(0))
           None
         }
       }
     }else{
+      println("Splits size != 3, actual = %d. String:\n%s".format(splits.size, tdmString))
       None
     }
   }
@@ -221,9 +222,11 @@ object MentionIO{
 }
 case class TuplesDocumentWithCorefMentions(tuplesDocument:TuplesDocument, sentenceOffsets:List[Int], mentions:Map[Mention, List[Mention]]){
   import TuplesDocumentWithCorefMentions._
-
-
-  override def toString():String = "%s%s%s%s%s".format(tuplesDocument.toString(), tdocsep, sentenceOffsets.mkString(","), tdocsep, MentionIO.mentionsMapString(mentions))
+  override def toString:String = {
+    val out = "%s%s%s%s%s".format(tuplesDocument.toString(), tdocsep, sentenceOffsets.mkString(","), tdocsep, MentionIO.mentionsMapString(mentions))
+    println("Out: " + out)
+    out
+  }
 }
 
 object TuplesDocument{
@@ -235,15 +238,21 @@ object TuplesDocument{
     if (splits.size == 2){
       val docid = splits(0)
       val recordsstring = splits(1)
-      val records = recordsstring.split(recsep).flatMap(rec => TypedTuplesRecord.fromString(rec))
+      val records = recordsstring.split(recsep).flatMap(rec => TypedTuplesRecord.fromString(rec)).toSeq
       if(!records.isEmpty){
         Some(new TuplesDocument(docid, records))
       }else{
+        println("Failed to read document from line: " + string)
         None
       }
     }else{
+      println("Failed to read document with splits size != 2. Actual = %d. Line:\n%s".format(splits.size, string))
       None
     }
+  }
+  implicit def TuplesDocumentFmt = new WireFormat[TuplesDocument]{
+    def toWire(x: TuplesDocument, out: DataOutput) {out.writeBytes(x.toString + "\n")}
+    def fromWire(in: DataInput): TuplesDocument = TuplesDocument.fromString(in.readLine()).get
   }
 }
 

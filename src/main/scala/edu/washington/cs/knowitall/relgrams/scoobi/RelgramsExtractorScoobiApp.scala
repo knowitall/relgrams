@@ -72,7 +72,8 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
   }
 
   def fromTuplesDocuments(inputPath: String) = {
-    val tuplesDocuments = TextInput.fromTextFile(inputPath).flatMap(x => TuplesDocumentWithCorefMentions.fromString(x))
+    val tuplesDocuments = TextInput.fromTextFile(inputPath)
+                                   .flatMap(x => TuplesDocumentWithCorefMentions.fromString(x))
     val relgramCounts = tuplesDocuments.flatMap(document => {
       val docid = document.tuplesDocument.docid
      try{
