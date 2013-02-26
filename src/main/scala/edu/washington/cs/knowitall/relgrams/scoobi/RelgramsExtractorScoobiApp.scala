@@ -1,4 +1,4 @@
-package edu.washington.cs.knowitall.relgrams
+package edu.washington.cs.knowitall.relgrams.scoobi
 
 /**
  * Created with IntelliJ IDEA.
@@ -9,22 +9,18 @@ package edu.washington.cs.knowitall.relgrams
  */
 
 
-import scala.collection.JavaConversions._
 import com.nicta.scoobi.application.ScoobiApp
-import scopt.mutable.OptionParser
 import com.nicta.scoobi.io.text.{TextOutput, TextInput}
 import com.nicta.scoobi.core.DList
-import utils.MapUtils
+
 import com.nicta.scoobi.Persist._
-import scopt.mutable.OptionParser
 import org.slf4j.LoggerFactory
-import collection.mutable.{HashMap, ArrayBuffer}
-import collection.mutable
+import edu.washington.cs.knowitall.relgrams._
+import scopt.mutable.OptionParser
 
 
 object RelgramsExtractorScoobiApp extends ScoobiApp{
 
-  import TuplesDocumentGenerator._
   import TypedTuplesRecord._
   import RelgramCounts._
 
@@ -65,8 +61,6 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
   def export(relgramCounts: DList[RelgramCounts], outputPath: String){
     try{
-      import RelgramCounts._
-      import TypedTuplesRecord._
       persist(TextOutput.toTextFile(relgramCounts.map(x => x.prettyString), outputPath))
     }catch{
       case e:Exception => {
@@ -75,6 +69,21 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
       }
 
     }
+  }
+
+  def fromTuplesDocuments(inputPath: String) = {
+    val tuplesDocuments = TextInput.fromTextFile(inputPath).flatMap(x => TuplesDocumentWithCorefMentions.fromString(x))
+    val relgramCounts = tuplesDocuments.flatMap(document => {
+      val docid = document.tuplesDocument.docid
+     try{
+        extractor.extractRelgramsFromDocument(document)
+                 .map(x => (x._1, x._2))
+      }catch{
+        case e:Exception => { logger.error("Failed to extract relgrams from docid %s with exception:\n%s".format(docid, e.toString)); None}
+      }
+    }).groupByKey[String, RelgramCounts]
+
+    reduceRelgramCounts(relgramCounts)
   }
 
   def run() {
@@ -89,7 +98,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
     if (!parser.parse(args)) return
     println("InputPath: " + inputPath)
-    val relgramCounts = groupDocsAndExtract(inputPath, outputPath)
+    val relgramCounts = fromTuplesDocuments(inputPath)//groupDocsAndExtract(inputPath, outputPath)
     export(relgramCounts, outputPath)
   }
 }

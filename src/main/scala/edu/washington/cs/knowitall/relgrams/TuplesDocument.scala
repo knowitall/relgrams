@@ -6,6 +6,8 @@ import io.Source
 import collection.mutable.{HashMap, ArrayBuffer}
 import collection.mutable
 import org.slf4j.LoggerFactory
+import com.nicta.scoobi.core.WireFormat
+import java.io.{DataInput, DataOutput}
 
 /**
  * Created with IntelliJ IDEA.
@@ -24,15 +26,19 @@ object TuplesDocumentGenerator{
     new TuplesDocument(docid, prunedSortedRecords)
   }
 
+  def getPrunedTuplesDocumentWithCorefMentions(docid: String, records: Seq[TypedTuplesRecord]) = {
+    val prunedSortedRecords = pruneRecordsAndIndex(records).sortBy(x => x._2).map(x => x._1)
+    getTuplesDocumentWithCorefMentions(new TuplesDocument(docid, prunedSortedRecords))
+  }
   def getTuplesDocumentWithCorefMentions(document:TuplesDocument) = {
     var offset = 0
     val sentencesWithOffsets = document.tupleRecords.iterator.map(record => {
       val curOffset = offset
       offset = offset + record.sentence.length + 1
       (record.sentence, curOffset)
-    }).toSeq
+    }).toList
     val mentions:Map[Mention, List[Mention]] = resolver.clusters(sentencesWithOffsets.map(x => x._1).mkString("\n"))
-    new TuplesDocumentWithCorefMentions(document, mentions)
+    new TuplesDocumentWithCorefMentions(document, sentencesWithOffsets.map(x => x._2), mentions)
   }
 
 
@@ -147,7 +153,33 @@ object TuplesDocumentGenerator{
 
 
 object TuplesDocumentWithCorefMentions{
+  val logger = LoggerFactory.getLogger(this.getClass)
+  def fromString(tdmString: String): Option[TuplesDocumentWithCorefMentions] = {
+    val splits = tdmString.split(tdocsep)
+    if (splits.size == 3){
+      TuplesDocument.fromString(splits(0)) match {
+        case Some(tuplesDocument:TuplesDocument) => {
+          val sentenceOffsets = splits(1).split(",").map(x => x.toInt).toList
+          val mentions = MentionIO.fromMentionsMapString(splits(2))
+          Some(new TuplesDocumentWithCorefMentions(tuplesDocument, sentenceOffsets, mentions))
+        }
+        case None => {
+          logger.error("Failed to construct TuplesDocument from string: " + splits(0))
+          None
+        }
+      }
+    }else{
+      None
+    }
+  }
+
   val tdocsep = "_TDOC_SEP_"
+
+  implicit def TuplesDocumentWithCorefMentionsFmt = new WireFormat[TuplesDocumentWithCorefMentions]{
+    def toWire(x: TuplesDocumentWithCorefMentions, out: DataOutput) {out.writeBytes(x.toString + "\n")}
+    def fromWire(in: DataInput): TuplesDocumentWithCorefMentions = TuplesDocumentWithCorefMentions.fromString(in.readLine()).get
+  }
+
 }
 object MentionIO{
   val msep = "_MSEP_"
@@ -173,7 +205,7 @@ object MentionIO{
         val keyMentionOption = fromMentionString(splits(0))
         keyMentionOption match {
           case Some(keyMention:Mention) => {
-            val valueMentions = splits(1).split(msep).flatMap(mstring => fromMentionString(mstring))
+            val valueMentions = splits(1).split(msep).flatMap(mstring => fromMentionString(mstring)).toList
             Some(keyMention -> valueMentions)
           }
           case None => {
@@ -187,21 +219,37 @@ object MentionIO{
     }).toMap
   }
 }
-case class TuplesDocumentWithCorefMentions(tuplesDocument:TuplesDocument, mentions:Map[Mention, List[Mention]]){
+case class TuplesDocumentWithCorefMentions(tuplesDocument:TuplesDocument, sentenceOffsets:List[Int], mentions:Map[Mention, List[Mention]]){
   import TuplesDocumentWithCorefMentions._
 
 
-  override def toString():String = "%s%s%s".format(tuplesDocument.toString(), tdocsep, MentionIO.mentionsMapString(mentions))
+  override def toString():String = "%s%s%s%s%s".format(tuplesDocument.toString(), tdocsep, sentenceOffsets.mkString(","), tdocsep, MentionIO.mentionsMapString(mentions))
 }
 
 object TuplesDocument{
+
+  val docidsep = "_DOCID_SEP_"
   val recsep = "_RECORD_SEP_"
-  def fromString(string:String):Seq[TypedTuplesRecord] = string.split(recsep).flatMap(rec => TypedTuplesRecord.fromString(rec))
+  def fromString(string:String):Option[TuplesDocument] = {
+    val splits = string.split(docidsep)
+    if (splits.size == 2){
+      val docid = splits(0)
+      val recordsstring = splits(1)
+      val records = recordsstring.split(recsep).flatMap(rec => TypedTuplesRecord.fromString(rec))
+      if(!records.isEmpty){
+        Some(new TuplesDocument(docid, records))
+      }else{
+        None
+      }
+    }else{
+      None
+    }
+  }
 }
 
 case class TuplesDocument (docid:String, tupleRecords:Seq[TypedTuplesRecord]) {
   import TuplesDocument._
-  override def toString():String = tupleRecords.mkString(recsep)
+  override def toString():String = "%s%s%s".format(docid, docidsep, tupleRecords.mkString(recsep))
 }
 
 
@@ -213,11 +261,16 @@ object CorefDocumentTester{
                                .groupBy(record => record.docid)
                                .map(kv => TuplesDocumentGenerator.getPrunedDocument(kv._1, kv._2))
 
-    //val tdmSeq = tupleDocuments.map(td => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(td))
-    //tdmSeq.foreach(tdm=> logger.info(tdm.toString()))
+    println("Size of tupleDocuments: " + tupleDocuments.size)
     tupleDocuments.foreach(td => TuplesDocument.fromString(td.toString()) match {
-      case Some(m:TuplesDocument) => logger.info("Success.")
-      case None => logger.info("failure on tdm: " + td.docid)
+      case Some(m:TuplesDocument) => println("Success.")
+      case None => println("failure on tdm: " + td.docid)
     })
+    val tdmSeq = tupleDocuments.map(td => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(td))
+    tdmSeq.foreach(tdm=> TuplesDocumentWithCorefMentions.fromString(tdm.toString()) match {
+      case Some(tdm:TuplesDocumentWithCorefMentions) => println("Success 2.")
+      case None => println("Failure on tdm2: " + tdm.tuplesDocument.docid)
+    })
+
   }
 }
