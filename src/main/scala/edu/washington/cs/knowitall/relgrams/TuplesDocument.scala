@@ -44,36 +44,21 @@ object TuplesDocumentGenerator{
 
   //Two relations are different as long as they are between different arguments.
   def areDifferentRelations(outer: TypedTuplesRecord, inner: TypedTuplesRecord): Boolean = {
-    if (outer.arg1.equals(inner.arg1) &&
-      outer.arg2.equals(inner.arg2)){
-      //println("args are exactly the same: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
-      return false
-    }
-    if (outer.arg1.equals(inner.arg2) &&
-      outer.arg2.equals(inner.arg1)){// && relationsAreMostlySame(inner.relHead, outer.relHead)){
-      //println("args are inverted but relations are same: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
-      return false
-    }
-    if(inner.subsumes(outer) || outer.subsumes(inner)){
-      println("subsumes: " + inner.arg1Head + "," + inner.relHead + "," + inner.arg2Head + "\t" + outer.arg1Head + "," + outer.relHead + "," + outer.arg2Head)
-      return false
-    }
-    return true
+    def sameArgs(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.arg1.equals(y.arg1) && x.arg2.equals(y.arg2)
+    def switchedArgs(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.arg1.equals(y.arg2) && x.arg2.equals(y.arg1)
+    def subsumes(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.subsumes(y) || y.subsumes(x)
+    !sameArgs(outer, inner) && !switchedArgs(outer, inner) && !subsumes(outer, inner)
   }
 
 
   //Filter typed tuples and sort them in the order of occurrence in text.
   def removeNonAlphaNumericRecords(sRecords:Seq[TypedTuplesRecord]):Seq[TypedTuplesRecord] = {
-
     val hasAlphabetOrDigitRe = """[a-zA-Z0-9]""".r
     def specialCharsOnly(string:String) = hasAlphabetOrDigitRe.findFirstIn(string) == None
     def isGoodExtraction(record: TypedTuplesRecord):Boolean = {
-
-      if(specialCharsOnly(record.arg1Head)) return false
-      if(specialCharsOnly(record.rel)) return false
-      if(specialCharsOnly(record.arg2Head)) return false
-
-      return true
+      !specialCharsOnly(record.arg1Head) &&
+      !specialCharsOnly(record.relHead) &&
+      !specialCharsOnly(record.arg2Head)
     }
     sRecords.filter(record => isGoodExtraction(record))
   }
@@ -220,7 +205,9 @@ object MentionIO{
     }).toMap
   }
 }
-case class TuplesDocumentWithCorefMentions(tuplesDocument:TuplesDocument, sentenceOffsets:List[Int], mentions:Map[Mention, List[Mention]]){
+case class TuplesDocumentWithCorefMentions(tuplesDocument:TuplesDocument,
+                                           sentenceOffsets:List[Int],
+                                           mentions:Map[Mention, List[Mention]]){
   import TuplesDocumentWithCorefMentions._
   override def toString:String = {
     val out = "%s%s%s%s%s".format(tuplesDocument.toString(), tdocsep, sentenceOffsets.mkString(","), tdocsep, MentionIO.mentionsMapString(mentions))
@@ -230,6 +217,8 @@ case class TuplesDocumentWithCorefMentions(tuplesDocument:TuplesDocument, senten
 }
 
 object TuplesDocument{
+
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   val docidsep = "_DOCID_SEP_"
   val recsep = "_RECORD_SEP_"
@@ -242,10 +231,12 @@ object TuplesDocument{
       if(!records.isEmpty){
         Some(new TuplesDocument(docid, records))
       }else{
+        logger.error("Failed to read document from line: " + string)
         println("Failed to read document from line: " + string)
         None
       }
     }else{
+      logger.error("Failed to read document with splits size != 2. Actual = %d. Line:\n%s".format(splits.size, string))
       println("Failed to read document with splits size != 2. Actual = %d. Line:\n%s".format(splits.size, string))
       None
     }

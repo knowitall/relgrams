@@ -17,9 +17,11 @@ import com.nicta.scoobi.io.text.{TextOutput, TextInput}
 import com.nicta.scoobi.core.DList
 import com.nicta.scoobi.Persist._
 import scopt.mutable.OptionParser
+import org.slf4j.LoggerFactory
 
 object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
 
+  val applogger = LoggerFactory.getLogger(this.getClass)
   def exportWithCorefs(list: DList[TuplesDocumentWithCorefMentions], outputPath: String){
     import TuplesDocumentWithCorefMentions._
     try{
@@ -51,12 +53,10 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
   def run() {
     var inputPath, outputPath = ""
     var fromDocs = false
-    var docorefs = false
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
       opt("fromDocs", "from serialized tuple documents?", { str => fromDocs = str.toBoolean})
-      //opt("docorefs", "do coreference mentions?", { str => docorefs = str.toBoolean})
     }
 
     if (!parser.parse(args)) return
@@ -64,19 +64,23 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
     import TuplesDocument._
     if (!fromDocs){
 
+      println("Building TupleDocuments.")
+      applogger.info("Building TupleDocuments.")
       val tupledocuments = TextInput.fromTextFile(inputPath)
                                               .flatMap(line =>TypedTuplesRecord.fromString(line))
                                               .groupBy(record => record.docid)
                                               .map(x => TuplesDocumentGenerator.getPrunedDocument(x._1, x._2.toSeq))
       export(tupledocuments, outputPath)
-
     }else if (fromDocs) {
-      val tupleDocumentsWithCorefs = TextInput.fromTextFile(inputPath)
+      println("Building TupleDocumentsWithCorefMentions.")
+      applogger.info("Building TupleDocumentsWithCorefMentions.")
+      val tupleDocuments = TextInput.fromTextFile(inputPath)
                                               .flatMap(line => TuplesDocument.fromString(line))
-                                              .map(document => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(document))
+
+      val tupleDocumentsWithCorefs = tupleDocuments.map(document => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(document))
+
       exportWithCorefs(tupleDocumentsWithCorefs, outputPath)
 
     }
-                                 //.map(td => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(td))
   }
 }

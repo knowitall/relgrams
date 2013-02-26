@@ -83,6 +83,8 @@ object TypedTuplesRecord{
         arg1Head, arg1HeadInterval, relHead, relHeadInterval, arg2Head, arg2HeadInterval,
         arg1Types, arg2Types))
     }else{
+      println("Failed to read TypedTuplesRecord from string: " + string)
+      println("String has only %d splits. Expected at least %d".format(splits.size, 10))
       logger.error("Failed to read TypedTuplesRecord from string: " + string)
       logger.error("String has only %d splits. Expected at least %d".format(splits.size, 10))
       None

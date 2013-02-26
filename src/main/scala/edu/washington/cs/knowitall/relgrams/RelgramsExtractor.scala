@@ -67,7 +67,7 @@ class RelgramsExtractor(maxWindow:Int) {
       val outerStartOffset = sentencesWithOffsets(oindex)
       val outerArg1s = (outer.arg1Head::Nil ++ outer.arg1Types).filter(oa1 => !oa1.trim.isEmpty).toSet
       val outerArg2s = (outer.arg2Head::Nil ++ outer.arg2Types).filter(oa1 => !oa1.trim.isEmpty).toSet
-      val orel = outer.rel
+      val orel = outer.relHead
       var outerSentences = new mutable.HashSet[String]()
       prunedRecords.iterator.filter(innerIndex => (innerIndex._2 > oindex) && (innerIndex._2 <= oindex+maxWindow)).foreach(innerIndex => {
         val iindex = innerIndex._2
@@ -86,8 +86,7 @@ class RelgramsExtractor(maxWindow:Int) {
           })
         })
 
-        val irel = inner.rel
-
+        val irel = inner.relHead
         val corefArgs:Option[(String, String, String, String)] = CoreferringArguments.coreferringArgs(outer, outerStartOffset, inner, innerStartOffset, mentions)
         /**corefArgs match {
           case Some(x:(String, String, String, String)) => println("corefs: " + x)
