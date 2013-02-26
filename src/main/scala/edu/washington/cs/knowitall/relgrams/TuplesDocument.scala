@@ -20,8 +20,20 @@ import java.io.{DataInput, DataOutput}
 
 object TuplesDocumentGenerator{
 
-  val resolveWithTimeout = runWithTimeout(1000 * 100)
+  var resolveWithTimeout = runWithTimeout(10) _
+  import scala.actors.Futures._
+  def runWithTimeout(timeoutMs: Long)(f: => Map[Mention, List[Mention]]) : Option[Map[Mention, List[Mention]]] = {
+    awaitAll(timeoutMs, future(f)).head.asInstanceOf[Option[Map[Mention, List[Mention]]]]
+  }
+
+  def setTimeout(timeOut: Int){
+    println("Timeout seconds: %.2f".format(timeOut/1000.0))
+    resolveWithTimeout = runWithTimeout(timeOut) _
+  }
+
+
   val resolver = new StanfordCoreferenceResolver()
+  println(resolver.clusters("This is a test of stanford."))
   def getPrunedDocument(docid: String, records: Seq[TypedTuplesRecord]): TuplesDocument = {
     val prunedSortedRecords = pruneRecordsAndIndex(records).sortBy(x => x._2).map(x => x._1)
     new TuplesDocument(docid, prunedSortedRecords)
@@ -29,32 +41,86 @@ object TuplesDocumentGenerator{
 
   def getPrunedTuplesDocumentWithCorefMentions(docid: String, records: Seq[TypedTuplesRecord]) = {
     val prunedSortedRecords = pruneRecordsAndIndex(records).sortBy(x => x._2).map(x => x._1)
-    getTuplesDocumentWithCorefMentions(new TuplesDocument(docid, prunedSortedRecords))
+    getTuplesDocumentWithCorefMentionsBlocks(new TuplesDocument(docid, prunedSortedRecords))
   }
-  def getTuplesDocumentWithCorefMentions(document:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
-    var offset = 0
-    val sentencesWithOffsets = document.tupleRecords.iterator.map(record => {
-      val curOffset = offset
-      offset = offset + record.sentence.length + 1
-      (record.sentence, curOffset)
-    }).toList
-   resolveWithTimeout(resolver.clusters(sentencesWithOffsets.map(x => x._1).mkString("\n"))) match {
-     case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, sentencesWithOffsets.map(x => x._2), mentions))
+
+  /**def getTuplesDocumentWithCorefMentions(document:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
+
+    val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
+    println("Number of sentences: %d".format(sentences.size))
+    val start = System.currentTimeMillis()
+    val out = resolveWithTimeout(resolver.clusters(sentences.mkString("\n"))) match {
+     case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
      case None => {
        println("Timing out document: " + document.docid + ". No mentions added.")
-       Some(new TuplesDocumentWithCorefMentions(document, sentencesWithOffsets.map(x => x._2), Map[Mention, List[Mention]]()))
-       None
+       Some(new TuplesDocumentWithCorefMentions(document, offsets, Map[Mention, List[Mention]]()))
      }
    }
+   val end = System.currentTimeMillis()
+   println("Resolver time: %.2f seconds".format((end-start)/1000.0))
+   out
+  } */
 
+  def resolve(sentences:List[String]) =  {
+    resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
+  }
+  def getTuplesDocumentWithCorefMentionsBlocks(document:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
+
+    val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
+    //val start = System.currentTimeMillis()
+    val mentionsOption = if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
+    val out = mentionsOption match {
+      case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
+      case None => {
+        println("Timing out document: " + document.docid + ". No mentions added.")
+        Some(new TuplesDocumentWithCorefMentions(document, offsets, Map[Mention, List[Mention]]()))
+      }
+    }
+    //val end = System.currentTimeMillis()
+    out
   }
 
-  import scala.actors.Futures._
-  def runWithTimeout(timeoutMs: Long)(f: => Map[Mention, List[Mention]]) : Option[Map[Mention, List[Mention]]] = {
-    awaitAll(timeoutMs, future(f)).head.asInstanceOf[Option[Map[Mention, List[Mention]]]]
+  def resolveInBlocks(document:TuplesDocument, sentences:List[String], offsets:List[Int]):Option[Map[Mention, List[Mention]]] = {
+    def shiftMention(mention:Mention, by:Int):Mention = new Mention(mention.text, mention.offset + by)
+    val blocks = sentenceBlocksWithOffsets(document, sentences, offsets)
+    val mentions:Map[Mention, List[Mention]] = blocks.flatMap(block => {
+      val bsentences = block._1
+      val boffsets = block._2
+      val startOffset = boffsets.head
+      resolveWithTimeout(resolver.clusters(bsentences.mkString("\n"))) match {
+        case Some(mentions:Map[Mention, List[Mention]]) => mentions.map(kv => (shiftMention(kv._1, startOffset) -> kv._2.map(m => shiftMention(m, startOffset))))
+        case None => {
+          None
+        }
+      }
+    }).toMap
+    Some(mentions)
+  }
+
+  def sentenceBlocksWithOffsets(document:TuplesDocument, sentences:List[String], offsets:List[Int]) = {
+    //val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
+    val size10SentBlocks = sentences.grouped(10).toList
+    val size10OffsetBlocks = offsets.grouped(10).toList
+    val adjustedBlocks = size10OffsetBlocks(0)::Nil ++ (1 until size10OffsetBlocks.size).map(i => {
+      val by = size10SentBlocks(i-1).mkString("\n").size
+      size10OffsetBlocks(i).map(offset => offset + by)
+    })
+    import edu.washington.cs.knowitall.relgrams.utils.Pairable._
+    size10SentBlocks pairElements adjustedBlocks
   }
 
 
+  def sentencesWithOffsets(document: TuplesDocument) = {//List[(String, Int)] = {
+    var offset = 0
+    var sentences = new ArrayBuffer[String]()
+    var offsets = new ArrayBuffer[Int]()
+    document.tupleRecords.iterator.foreach(record => {
+      sentences += record.sentence
+      offsets += offset
+      offset = offset + record.sentence.length + 1
+    })
+    (sentences.toList, offsets.toList)
+  }
 
   //Two relations are different as long as they are between different arguments.
   def areDifferentRelations(outer: TypedTuplesRecord, inner: TypedTuplesRecord): Boolean = {
@@ -155,11 +221,11 @@ object TuplesDocumentWithCorefMentions{
   val logger = LoggerFactory.getLogger(this.getClass)
   def fromString(tdmString: String): Option[TuplesDocumentWithCorefMentions] = {
     val splits = tdmString.split(tdocsep)
-    if (splits.size == 3){
+    if (splits.size >= 2){
       TuplesDocument.fromString(splits(0)) match {
         case Some(tuplesDocument:TuplesDocument) => {
           val sentenceOffsets = splits(1).split(",").map(x => x.toInt).toList
-          val mentions = MentionIO.fromMentionsMapString(splits(2))
+          val mentions = if(splits.size > 2) MentionIO.fromMentionsMapString(splits(2)) else Map[Mention, List[Mention]]()
           Some(new TuplesDocumentWithCorefMentions(tuplesDocument, sentenceOffsets, mentions))
         }
         case None => {
@@ -244,12 +310,12 @@ object TuplesDocument{
         Some(new TuplesDocument(docid, records))
       }else{
         logger.error("Failed to read document from line: " + string)
-        println("Failed to read document from line: " + string)
+        //println("Failed to read document from line: " + string)
         None
       }
     }else{
       logger.error("Failed to read document with splits size != 2. Actual = %d. Line:\n%s".format(splits.size, string))
-      println("Failed to read document with splits size != 2. Actual = %d. Line:\n%s".format(splits.size, string))
+      //println("Failed to read document with splits size != 2. Actual = %d. Line:\n%s".format(splits.size, string))
       None
     }
   }
@@ -278,7 +344,8 @@ object CorefDocumentTester{
       case Some(m:TuplesDocument) => println("Success.")
       case None => println("failure on tdm: " + td.docid)
     })
-    val tdmSeq = tupleDocuments.flatMap(td => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(td))
+    TuplesDocumentGenerator.setTimeout(args(1).toInt)
+    val tdmSeq = tupleDocuments.flatMap(td => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentionsBlocks(td))
     tdmSeq.foreach(tdm=> TuplesDocumentWithCorefMentions.fromString(tdm.toString()) match {
       case Some(tdm:TuplesDocumentWithCorefMentions) => println("Success 2.")
       case None => println("Failure on tdm2: " + tdm.tuplesDocument.docid)
@@ -286,3 +353,19 @@ object CorefDocumentTester{
 
   }
 }
+
+
+
+/**
+val third = sentences.size/3
+    val twoThird = sentences.size*2/3
+    val startBlock = sentences.take(third)
+    val startOffsets = offsets.take(third)
+    val middleBlock = sentences.slice(third, twoThird)
+    val middleStartOffset = startBlock.mkString("\n").size
+    val middleOffsets = offsets.slice(third, twoThird).map(o => o + middleStartOffset)
+    val endBlock = sentences.slice(twoThird, sentences.size)
+    val endStartOffset = (startBlock ++ middleBlock).mkString("\n").size
+    val endOffsets = offsets.slice(twoThird, sentences.size).map(o => o + endStartOffset)
+
+    (sentences, offsets, (startBlock, startOffsets)::(middleBlock, middleOffsets)::(endBlock, endOffsets)::Nil)    */

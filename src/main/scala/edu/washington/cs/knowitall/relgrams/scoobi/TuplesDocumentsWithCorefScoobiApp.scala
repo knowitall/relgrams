@@ -53,10 +53,12 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
   def run() {
     var inputPath, outputPath = ""
     var fromDocs = false
+    var corefTimeoutMs = 1000 * 30 //30 seconds.
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
       opt("fromDocs", "from serialized tuple documents?", { str => fromDocs = str.toBoolean})
+      opt("corefTimeoutMs", "coref time out in milli-seconds.", { str => corefTimeoutMs = str.toInt})
     }
 
     if (!parser.parse(args)) return
@@ -83,7 +85,7 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
                                                 case None => None
                                               })
 
-      val tupleDocumentsWithCorefs = tupleDocuments.flatMap(document => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(document))
+      val tupleDocumentsWithCorefs = tupleDocuments.flatMap(document => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentionsBlocks(document))
 
       exportWithCorefs(tupleDocumentsWithCorefs, outputPath)
 
