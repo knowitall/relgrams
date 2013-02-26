@@ -62,7 +62,7 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
     }
 
     if (!parser.parse(args)) return
-
+    TuplesDocumentGenerator.setTimeout(corefTimeoutMs)
     import TuplesDocument._
     if (!fromDocs){
 

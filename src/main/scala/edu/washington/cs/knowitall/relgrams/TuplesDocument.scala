@@ -72,7 +72,7 @@ object TuplesDocumentGenerator{
     val out = mentionsOption match {
       case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
       case None => {
-        println("Timing out document: " + document.docid + ". No mentions added.")
+        println("Timing out document: " + document.docid + " with " + document.tupleRecords.size + "sentences. No mentions added.")
         //Some(new TuplesDocumentWithCorefMentions(document, offsets, Map[Mention, List[Mention]]()))
         None  //Testing this for timeout.
       }
