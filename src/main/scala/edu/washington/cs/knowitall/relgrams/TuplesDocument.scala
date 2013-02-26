@@ -20,6 +20,7 @@ import java.io.{DataInput, DataOutput}
 
 object TuplesDocumentGenerator{
 
+  val resolveWithTimeout = runWithTimeout(1000 * 100)
   val resolver = new StanfordCoreferenceResolver()
   def getPrunedDocument(docid: String, records: Seq[TypedTuplesRecord]): TuplesDocument = {
     val prunedSortedRecords = pruneRecordsAndIndex(records).sortBy(x => x._2).map(x => x._1)
@@ -30,16 +31,29 @@ object TuplesDocumentGenerator{
     val prunedSortedRecords = pruneRecordsAndIndex(records).sortBy(x => x._2).map(x => x._1)
     getTuplesDocumentWithCorefMentions(new TuplesDocument(docid, prunedSortedRecords))
   }
-  def getTuplesDocumentWithCorefMentions(document:TuplesDocument) = {
+  def getTuplesDocumentWithCorefMentions(document:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
     var offset = 0
     val sentencesWithOffsets = document.tupleRecords.iterator.map(record => {
       val curOffset = offset
       offset = offset + record.sentence.length + 1
       (record.sentence, curOffset)
     }).toList
-    val mentions:Map[Mention, List[Mention]] = resolver.clusters(sentencesWithOffsets.map(x => x._1).mkString("\n"))
-    new TuplesDocumentWithCorefMentions(document, sentencesWithOffsets.map(x => x._2), mentions)
+   resolveWithTimeout(resolver.clusters(sentencesWithOffsets.map(x => x._1).mkString("\n"))) match {
+     case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, sentencesWithOffsets.map(x => x._2), mentions))
+     case None => {
+       println("Timing out document: " + document.docid + ". No mentions added.")
+       Some(new TuplesDocumentWithCorefMentions(document, sentencesWithOffsets.map(x => x._2), Map[Mention, List[Mention]]()))
+       None
+     }
+   }
+
   }
+
+  import scala.actors.Futures._
+  def runWithTimeout(timeoutMs: Long)(f: => Map[Mention, List[Mention]]) : Option[Map[Mention, List[Mention]]] = {
+    awaitAll(timeoutMs, future(f)).head.asInstanceOf[Option[Map[Mention, List[Mention]]]]
+  }
+
 
 
   //Two relations are different as long as they are between different arguments.
@@ -264,7 +278,7 @@ object CorefDocumentTester{
       case Some(m:TuplesDocument) => println("Success.")
       case None => println("failure on tdm: " + td.docid)
     })
-    val tdmSeq = tupleDocuments.map(td => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(td))
+    val tdmSeq = tupleDocuments.flatMap(td => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(td))
     tdmSeq.foreach(tdm=> TuplesDocumentWithCorefMentions.fromString(tdm.toString()) match {
       case Some(tdm:TuplesDocumentWithCorefMentions) => println("Success 2.")
       case None => println("Failure on tdm2: " + tdm.tuplesDocument.docid)

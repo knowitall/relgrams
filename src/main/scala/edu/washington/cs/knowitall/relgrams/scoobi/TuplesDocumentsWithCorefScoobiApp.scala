@@ -83,7 +83,7 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
                                                 case None => None
                                               })
 
-      val tupleDocumentsWithCorefs = tupleDocuments.map(document => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(document))
+      val tupleDocumentsWithCorefs = tupleDocuments.flatMap(document => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(document))
 
       exportWithCorefs(tupleDocumentsWithCorefs, outputPath)
 
