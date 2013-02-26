@@ -75,7 +75,10 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
       println("Building TupleDocumentsWithCorefMentions.")
       applogger.info("Building TupleDocumentsWithCorefMentions.")
       val tupleDocuments = TextInput.fromTextFile(inputPath)
-                                              .flatMap(line => TuplesDocument.fromString(line))
+                                              .flatMap(line => TuplesDocument.fromString(line) match {
+                                                case Some(x:TuplesDocument) => if(x.tupleRecords.size <= 100) Some(x) else None
+                                                case None => None
+                                              })
 
       val tupleDocumentsWithCorefs = tupleDocuments.map(document => TuplesDocumentGenerator.getTuplesDocumentWithCorefMentions(document))
 
