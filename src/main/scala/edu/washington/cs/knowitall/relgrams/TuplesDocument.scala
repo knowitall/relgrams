@@ -73,13 +73,18 @@ class TuplesDocumentGenerator {
 
   def resolve(sentences:List[String]):Option[Map[Mention, List[Mention]]] =  {
     val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
-    resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
+    val start = System.currentTimeMillis()
+    val out = resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
+    val end = System.currentTimeMillis()
+    println("Time to process %d sentences %.2f seconds".format(sentences.size, (end-start)/(1000.0)))
+    out
   }
   def getTuplesDocumentWithCorefMentionsBlocks(indocument:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
 
-    val document = new TuplesDocument(indocument.docid, indocument.tupleRecords.take(50))
+    val document = new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => x.sentence.split(" ").size < 35).take(50))
 
     //Trimming document to 50 sentences.
+    println("Processing document: " + document.docid)
     val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
     //val start = System.currentTimeMillis()
     val mentionsOption = resolve(sentences)//if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
@@ -88,7 +93,7 @@ class TuplesDocumentGenerator {
     val out = mentionsOption match {
       case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
       case None => {
-        println("Timing out document: " + document.docid + " with " + document.tupleRecords.size + "sentences. No mentions added.")
+        println("Timing out document: " + document.docid + " with " + document.tupleRecords.size + " sentences. No mentions added.")
         //Some(new TuplesDocumentWithCorefMentions(document, offsets, Map[Mention, List[Mention]]()))
         None  //Testing this for timeout.
       }
