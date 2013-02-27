@@ -75,8 +75,11 @@ class TuplesDocumentGenerator {
     val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
     resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
   }
-  def getTuplesDocumentWithCorefMentionsBlocks(document:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
+  def getTuplesDocumentWithCorefMentionsBlocks(indocument:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
 
+    val document = new TuplesDocument(indocument.docid, indocument.tupleRecords.take(50))
+
+    //Trimming document to 50 sentences.
     val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
     //val start = System.currentTimeMillis()
     val mentionsOption = resolve(sentences)//if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
