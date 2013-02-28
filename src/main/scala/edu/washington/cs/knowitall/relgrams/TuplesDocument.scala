@@ -73,11 +73,11 @@ class TuplesDocumentGenerator {
 
   val resolver = new StanfordCoreferenceResolver()//resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
   def resolve(sentences:List[String]):Option[Map[Mention, List[Mention]]] =  {
-    val start = System.currentTimeMillis()
+    //val start = System.currentTimeMillis()
     //val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
     val out = Some(resolver.clusters(sentences.mkString("\n")))//resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
-    val end = System.currentTimeMillis()
-    println("Time to process %d sentences %.2f seconds".format(sentences.size, (end-start)/(1000.0)))
+    //val end = System.currentTimeMillis()
+    //println("Time to process %d sentences %.2f seconds".format(sentences.size, (end-start)/(1000.0)))
     out
   }
   def getTuplesDocumentWithCorefMentionsBlocks(indocument:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
