@@ -71,10 +71,11 @@ class TuplesDocumentGenerator {
    out
   } */
 
+  val resolver = new StanfordCoreferenceResolver()//resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
   def resolve(sentences:List[String]):Option[Map[Mention, List[Mention]]] =  {
-    val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
     val start = System.currentTimeMillis()
-    val out = resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
+    //val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
+    val out = Some(resolver.clusters(sentences.mkString("\n")))//resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
     val end = System.currentTimeMillis()
     println("Time to process %d sentences %.2f seconds".format(sentences.size, (end-start)/(1000.0)))
     out
@@ -353,6 +354,22 @@ case class TuplesDocument (docid:String, tupleRecords:Seq[TypedTuplesRecord]) {
   override def toString():String = "%s%s%s".format(docid, docidsep, tupleRecords.mkString(recsep))
 }
 
+object CorefDocumentDebugger{
+  val logger = LoggerFactory.getLogger(this.getClass)
+  def main(args:Array[String]){
+    val tgen = new TuplesDocumentGenerator(0)
+    val tupleDocuments = Source.fromFile(args(0)).getLines.flatMap(line => {
+      TuplesDocument.fromString(line)
+    }).toSeq
+    var corefs = tupleDocuments.map(td => tgen.getTuplesDocumentWithCorefMentionsBlocks(td))
+    corefs.foreach(coref => println("1: " + coref.toString))
+    for(i <- 0 until 5){
+      println("i: " + i)
+      corefs = tupleDocuments.map(td => tgen.getTuplesDocumentWithCorefMentionsBlocks(td))
+      corefs.foreach(coref => println("%d: %s".format(i, coref.toString)))
+    }
+  }
+}
 
 object CorefDocumentTester{
   val logger = LoggerFactory.getLogger(this.getClass)
