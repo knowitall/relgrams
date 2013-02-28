@@ -77,8 +77,9 @@ class TuplesDocumentGenerator {
     //val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
     var out:Option[Map[Mention, List[Mention]]] = None
     if (!sentences.isEmpty){
-      val maxsentsize = sentences.maxBy(x => x.length)
-      val avgsentsize = sentences.map(x => x.length).sum/sentences.size
+      val sentlengths = sentences.map(x => x.length)
+      val maxsentsize:Int = sentlengths.max
+      val avgsentsize = sentlengths.sum/sentences.size
       out = Some(resolver.clusters(sentences.mkString("\n")))//resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
       val end = System.currentTimeMillis()
       val size = if (out.isDefined) out.get.keys.size else 0
