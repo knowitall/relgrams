@@ -73,11 +73,17 @@ class TuplesDocumentGenerator {
 
   val resolver = new StanfordCoreferenceResolver()//resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
   def resolve(sentences:List[String]):Option[Map[Mention, List[Mention]]] =  {
-    //val start = System.currentTimeMillis()
+    val start = System.currentTimeMillis()
     //val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
-    val out = Some(resolver.clusters(sentences.mkString("\n")))//resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
-    //val end = System.currentTimeMillis()
-    //println("Time to process %d sentences %.2f seconds".format(sentences.size, (end-start)/(1000.0)))
+    var out:Option[Map[Mention, List[Mention]]] = None
+    if (!sentences.isEmpty){
+      val maxsentsize = sentences.maxBy(x => x.length)
+      val avgsentsize = sentences.map(x => x.length).sum/sentences.size
+      out = Some(resolver.clusters(sentences.mkString("\n")))//resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
+      val end = System.currentTimeMillis()
+      val size = if (out.isDefined) out.get.keys.size else 0
+      println("time\t%d\t%.2f\t%d\t%d\t%d".format(sentences.size, (end-start)/(1000.0), size, avgsentsize, maxsentsize))
+    }
     out
   }
   def getTuplesDocumentWithCorefMentionsBlocks(indocument:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
@@ -85,12 +91,9 @@ class TuplesDocumentGenerator {
     val document = indocument//new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => x.sentence.split(" ").size < 35).take(50))
 
     //Trimming document to 50 sentences.
-    //println("Processing document: " + document.docid)
+    println("Processing document: " + document.docid)
     val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
-    //val start = System.currentTimeMillis()
     val mentionsOption = resolve(sentences)//if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
-    //val end = System.currentTimeMillis()
-    //println("Time to process %d sentences %.2f seconds".format(sentences.size, (end-start)/(1000.0)))
     val out = mentionsOption match {
       case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
       case None => {
@@ -361,13 +364,11 @@ object CorefDocumentDebugger{
     val tupleDocuments = Source.fromFile(args(0)).getLines.flatMap(line => {
       TuplesDocument.fromString(line)
     }).toSeq
-    var corefs = tupleDocuments.map(td => tgen.getTuplesDocumentWithCorefMentionsBlocks(td))
-    corefs.foreach(coref => println("1: " + coref.toString))
-    for(i <- 0 until 5){
-      println("i: " + i)
-      corefs = tupleDocuments.map(td => tgen.getTuplesDocumentWithCorefMentionsBlocks(td))
-      corefs.foreach(coref => println("%d: %s".format(i, coref.toString)))
-    }
+    tupleDocuments.foreach(td => tgen.getTuplesDocumentWithCorefMentionsBlocks(td) match {
+      case Some(tdm:TuplesDocumentWithCorefMentions) => println("%s\t%d".format(tdm.tuplesDocument.docid, tdm.mentions.size))
+    })
+    //corefs.foreach(coref => println("%s\t%d" + corecoref.mentions.keys.size))
+
   }
 }
 

@@ -64,6 +64,7 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
     if (!parser.parse(args)) return
     val tgen = new TuplesDocumentGenerator(corefTimeoutMs)
     import TuplesDocument._
+    import TuplesDocumentWithCorefMentions._
     if (!fromDocs){
 
       println("Building TupleDocuments.")
@@ -76,6 +77,7 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
     }else if (fromDocs) {
       println("Building TupleDocumentsWithCorefMentions.")
       applogger.info("Building TupleDocumentsWithCorefMentions.")
+
       val tupleDocuments = TextInput.fromTextFile(inputPath)
                                               .flatMap(line => TuplesDocument.fromString(line) match {
                                                 case Some(x:TuplesDocument) => if(x.tupleRecords.size <= 100) Some(x) else {
