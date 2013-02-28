@@ -89,21 +89,39 @@ class TuplesDocumentGenerator {
   }
   def getTuplesDocumentWithCorefMentionsBlocks(indocument:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
 
-    val document = indocument//new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => x.sentence.split(" ").size < 35).take(50))
 
-    //Trimming document to 50 sentences.
-    println("Processing document: " + document.docid)
-    val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
-    val mentionsOption = resolve(sentences)//if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
-    val out = mentionsOption match {
-      case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
-      case None => {
-        println("Timing out document: " + document.docid + " with " + document.tupleRecords.size + " sentences. No mentions added.")
-        //Some(new TuplesDocumentWithCorefMentions(document, offsets, Map[Mention, List[Mention]]()))
-        None  //Testing this for timeout.
+    def trimDocument(document:TuplesDocument) = {
+      new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => {
+        val numwords = x.sentence.split(" ").size
+        val out = numwords <= 75
+        if (!out) println("ignored\t%s\t%d\t%d\t%s".format(indocument.docid, x.sentid, numwords))
+        out
+      }))
+    }
+    val out = try{
+      //val size = indocument.tupleRecords.size
+      val document = trimDocument(indocument)//indocument//new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => x.sentence.split(" ").size < 35).take(50))
+      //val outsize = document.tupleRecords.size
+      //Trimming document to 50 sentences.
+      //println("Processing document: " + document.docid + "\t" + size + "\t" + outsize)
+      val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
+
+      val mentionsOption = resolve(sentences)//if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
+      mentionsOption match {
+        case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
+        case None => {
+          println("Timing out document: " + document.docid + " with " + document.tupleRecords.size + " sentences. No mentions added.")
+          //Some(new TuplesDocumentWithCorefMentions(document, offsets, Map[Mention, List[Mention]]()))
+          None  //Testing this for timeout.
+        }
+      }
+
+    }catch {
+      case e:Exception => {
+        println("Caught exception assigning mentions to %s :\n%s".format(indocument.docid, e.getStackTraceString))
+        None
       }
     }
-
     out
   }
 
@@ -140,12 +158,15 @@ class TuplesDocumentGenerator {
 
   def sentencesWithOffsets(document: TuplesDocument) = {//List[(String, Int)] = {
     var offset = 0
-    var sentences = new ArrayBuffer[String]()
+    var sentencesMap = new HashMap[Int, String]//new ArrayBuffer[String]()
+    document.tupleRecords.iterator.foreach(record => sentencesMap += record.sentid -> record.sentence)
+    var sentences = new ArrayBuffer[String]
     var offsets = new ArrayBuffer[Int]()
-    document.tupleRecords.iterator.foreach(record => {
-      sentences += record.sentence
+    sentencesMap.keys.toSeq.sortBy(key => key).foreach(key => {//document.tupleRecords.iterator.foreach(record => {
+      val sentence = sentencesMap(key)
+      sentences += sentence
       offsets += offset
-      offset = offset + record.sentence.length + 1
+      offset = offset + sentence.length + 1
     })
     (sentences.toList, offsets.toList)
   }
