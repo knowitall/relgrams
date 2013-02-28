@@ -73,17 +73,17 @@ class TuplesDocumentGenerator {
 
   val resolver = new StanfordCoreferenceResolver()//resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
   def resolve(sentences:List[String]):Option[Map[Mention, List[Mention]]] =  {
-    val start = System.currentTimeMillis()
+    //val start = System.currentTimeMillis()
     //val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
     var out:Option[Map[Mention, List[Mention]]] = None
     if (!sentences.isEmpty){
-      val sentlengths = sentences.map(x => x.length)
-      val maxsentsize:Int = sentlengths.max
-      val avgsentsize = sentlengths.sum/sentences.size
+      //val sentlengths = sentences.map(x => x.length)
+      //val maxsentsize:Int = sentlengths.max
+      //val avgsentsize = sentlengths.sum/sentences.size
       out = Some(resolver.clusters(sentences.mkString("\n")))//resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
-      val end = System.currentTimeMillis()
-      val size = if (out.isDefined) out.get.keys.size else 0
-      println("time\t%d\t%.2f\t%d\t%d\t%d".format(sentences.size, (end-start)/(1000.0), size, avgsentsize, maxsentsize))
+      //val end = System.currentTimeMillis()
+      //val size = if (out.isDefined) out.get.keys.size else 0
+      //println("time\t%d\t%.2f\t%d\t%d\t%d".format(sentences.size, (end-start)/(1000.0), size, avgsentsize, maxsentsize))
     }
     out
   }
@@ -94,7 +94,7 @@ class TuplesDocumentGenerator {
       new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => {
         val numwords = x.sentence.split(" ").size
         val out = numwords <= 75
-        if (!out) println("ignored\t%s\t%d\t%d\t%s".format(indocument.docid, x.sentid, numwords))
+        if (!out) println("ignored\t%s\t%d\t%d".format(indocument.docid, x.sentid, numwords))
         out
       }))
     }
