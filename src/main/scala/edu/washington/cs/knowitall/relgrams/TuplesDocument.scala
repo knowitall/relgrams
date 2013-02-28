@@ -82,7 +82,7 @@ class TuplesDocumentGenerator {
   }
   def getTuplesDocumentWithCorefMentionsBlocks(indocument:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
 
-    val document = new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => x.sentence.split(" ").size < 35).take(50))
+    val document = indocument//new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => x.sentence.split(" ").size < 35).take(50))
 
     //Trimming document to 50 sentences.
     println("Processing document: " + document.docid)
