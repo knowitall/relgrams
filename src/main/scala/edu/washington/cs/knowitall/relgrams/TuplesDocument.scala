@@ -388,6 +388,7 @@ object CorefDocumentDebugger{
     }).toSeq
     tupleDocuments.foreach(td => tgen.getTuplesDocumentWithCorefMentionsBlocks(td) match {
       case Some(tdm:TuplesDocumentWithCorefMentions) => println("%s\t%d".format(tdm.tuplesDocument.docid, tdm.mentions.size))
+      case None =>
     })
     //corefs.foreach(coref => println("%s\t%d" + corecoref.mentions.keys.size))
 
