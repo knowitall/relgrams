@@ -85,7 +85,7 @@ class TuplesDocumentGenerator {
     val document = indocument//new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => x.sentence.split(" ").size < 35).take(50))
 
     //Trimming document to 50 sentences.
-    println("Processing document: " + document.docid)
+    //println("Processing document: " + document.docid)
     val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
     //val start = System.currentTimeMillis()
     val mentionsOption = resolve(sentences)//if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
