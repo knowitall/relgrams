@@ -41,9 +41,6 @@ class TuplesDocumentGenerator {
     resolveWithTimeout = runWithTimeout(timeOut) _
   }
 
-
-  //val resolver = new StanfordCoreferenceResolver()
-  //println(resolver.clusters("This is a test of stanford."))
   def getPrunedDocument(docid: String, records: Seq[TypedTuplesRecord]): TuplesDocument = {
     val prunedSortedRecords = pruneRecordsAndIndex(records).sortBy(x => x._2).map(x => x._1)
     new TuplesDocument(docid, prunedSortedRecords)
@@ -54,36 +51,12 @@ class TuplesDocumentGenerator {
     getTuplesDocumentWithCorefMentionsBlocks(new TuplesDocument(docid, prunedSortedRecords))
   }
 
-  /**def getTuplesDocumentWithCorefMentions(document:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
-
-    val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
-    println("Number of sentences: %d".format(sentences.size))
-    val start = System.currentTimeMillis()
-    val out = resolveWithTimeout(resolver.clusters(sentences.mkString("\n"))) match {
-     case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))
-     case None => {
-       println("Timing out document: " + document.docid + ". No mentions added.")
-       Some(new TuplesDocumentWithCorefMentions(document, offsets, Map[Mention, List[Mention]]()))
-     }
-   }
-   val end = System.currentTimeMillis()
-   println("Resolver time: %.2f seconds".format((end-start)/1000.0))
-   out
-  } */
 
   val resolver = new StanfordCoreferenceResolver()//resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
   def resolve(sentences:List[String]):Option[Map[Mention, List[Mention]]] =  {
-    //val start = System.currentTimeMillis()
-    //val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
     var out:Option[Map[Mention, List[Mention]]] = None
     if (!sentences.isEmpty){
-      //val sentlengths = sentences.map(x => x.length)
-      //val maxsentsize:Int = sentlengths.max
-      //val avgsentsize = sentlengths.sum/sentences.size
       out = Some(resolver.clusters(sentences.mkString("\n")))//resolveWithTimeout(resolver.clusters(sentences.mkString("\n")))
-      //val end = System.currentTimeMillis()
-      //val size = if (out.isDefined) out.get.keys.size else 0
-      //println("time\t%d\t%.2f\t%d\t%d\t%d".format(sentences.size, (end-start)/(1000.0), size, avgsentsize, maxsentsize))
     }
     out
   }
@@ -99,13 +72,8 @@ class TuplesDocumentGenerator {
       }))
     }
     val out = try{
-      //val size = indocument.tupleRecords.size
       val document = trimDocument(indocument)//indocument//new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => x.sentence.split(" ").size < 35).take(50))
-      //val outsize = document.tupleRecords.size
-      //Trimming document to 50 sentences.
-      //println("Processing document: " + document.docid + "\t" + size + "\t" + outsize)
       val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
-
       val mentionsOption = resolve(sentences)//if (sentences.size > 50) { resolveInBlocks(document, sentences, offsets) } else { resolve(sentences) }
       mentionsOption match {
         case Some(mentions:Map[Mention, List[Mention]]) => Some(new TuplesDocumentWithCorefMentions(document, offsets, mentions))

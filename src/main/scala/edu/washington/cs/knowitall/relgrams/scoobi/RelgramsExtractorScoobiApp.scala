@@ -26,38 +26,8 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
 
   val logger = LoggerFactory.getLogger(this.getClass)
-  val extractor = new RelgramsExtractor(maxWindow = 10)
-  val counter = new RelgramsCounter
-
-
-  def reduceRelgramCounts(groupedRelgramCounts: DList[(String, Iterable[RelgramCounts])]):DList[RelgramCounts] = {
-    groupedRelgramCounts.flatMap(x => counter.reduceRelgramCounts(x._2))
-  }
-
-
-  def groupedTypedTuplesRecord(inputPath:String) = {
-    //import TypedTuplesRecord._
-    TextInput.fromTextFile(inputPath)
-             .flatMap(line =>TypedTuplesRecord.fromString(line))
-             .groupBy(record => record.docid)
-  }
- /** def groupDocsAndExtract(inputPath:String, outputPath:String) = {
-
-    val groupedRecords = groupedTypedTuplesRecord(inputPath)
-    val relgramCounts = groupedRecords.flatMap(kv => {
-      val docid = kv._1
-      val records = kv._2
-      try{
-        extractor.extractRelgrams(records.toSeq)
-                 .map(x => (x._1, x._2))
-      }catch{
-        case e:Exception => { logger.error("Failed to extract relgrams from docid %s with exception:\n%s".format(docid, e.toString)); None}
-      }
-    }).groupByKey[String, RelgramCounts]
-
-    reduceRelgramCounts(relgramCounts)
-  }   */
-
+  var extractor:RelgramsExtractor = null
+  var counter:RelgramsCounter = null
 
   def export(relgramCounts: DList[RelgramCounts], outputPath: String){
     try{
@@ -71,35 +41,55 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     }
   }
 
-  def fromTuplesDocuments(inputPath: String) = {
-    val tuplesDocuments = TextInput.fromTextFile(inputPath)
-                                   .flatMap(x => TuplesDocumentWithCorefMentions.fromString(x))
-    val relgramCounts = tuplesDocuments.flatMap(document => {
+
+  def loadTupleDocuments(inputPath:String) = {
+    TextInput.fromTextFile(inputPath)
+      .flatMap(x => TuplesDocumentWithCorefMentions.fromString(x))
+  }
+
+
+  def extractRelgramCounts(tuplesDocuments: DList[TuplesDocumentWithCorefMentions], equality:Boolean, noequality:Boolean)={
+    tuplesDocuments.flatMap(document => {
       val docid = document.tuplesDocument.docid
-     try{
+      try{
         extractor.extractRelgramsFromDocument(document)
-                 .map(x => (x._1, x._2))
       }catch{
         case e:Exception => { logger.error("Failed to extract relgrams from docid %s with exception:\n%s".format(docid, e.toString)); None}
       }
-    }).groupByKey[String, RelgramCounts]
+    })
+  }
 
-    reduceRelgramCounts(relgramCounts)
+
+  def reduceRelgramCounts(relgramCounts: DList[(String, RelgramCounts)]) = {
+    relgramCounts.map(x => (x._1, x._2))
+                 .groupByKey[String, RelgramCounts]
+                 .flatMap(x => counter.reduceRelgramCounts(x._2))
   }
 
   def run() {
 
     var inputPath, outputPath = ""
     var maxWindow = 10
+    var equality = false
+    var noequality = false
+
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
       opt("maxWindow", "max window size", {str => maxWindow = str.toInt})
+      opt("equality", "Argument equality tuples.", {str => equality = str.toBoolean})
+      opt("noequality", "Count tuples without equality.", {str => noequality = str.toBoolean})
     }
 
     if (!parser.parse(args)) return
-    println("InputPath: " + inputPath)
-    val relgramCounts = fromTuplesDocuments(inputPath)//groupDocsAndExtract(inputPath, outputPath)
-    export(relgramCounts, outputPath)
+
+    assert(equality || noequality, "Both equality or noequality flags are false. One of them must be set true.")
+
+    extractor = new RelgramsExtractor(maxWindow, equality, noequality)
+    counter = new RelgramsCounter
+    val tupleDocuments = loadTupleDocuments(inputPath)
+    val relgramCounts = extractRelgramCounts(tupleDocuments, equality, noequality)
+    val reducedRelgramCounts = reduceRelgramCounts(relgramCounts)
+    export(reducedRelgramCounts, outputPath)
   }
 }

@@ -46,7 +46,6 @@ object MapUtils {
 
 
   def toCountsString[A](counts:Map[A, Int], sep:String=":")(implicit ordering:Ordering[A]):String = counts.toSeq.sortBy(x => x._1).map(wc => wc._1 + sep + wc._2).mkString(",")
-  //def toCountsString[A](counts:Map[A, Int])(implicit ordering:Ordering[A]) = counts.toSeq.sortBy(x => x._1).map(wc => wc._1 + ":" + wc._2).mkString(",")
 
   def addTo[A, B](addWith: mutable.Map[A, B], toAdd: mutable.Map[A, B])(implicit numeric: Numeric[B]){
     toAdd.map(kv => updateCounts(addWith, kv._1, kv._2))
