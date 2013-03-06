@@ -170,7 +170,6 @@ class TuplesDocumentGenerator {
     def sameArgs(x:TypedTuplesRecord, y:TypedTuplesRecord)     = x.arg1.equals(y.arg1) && x.arg2.equals(y.arg2)
     def switchedArgs(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.arg1.equals(y.arg2) && x.arg2.equals(y.arg1)
     def subsumedArgs(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.subsumesOrSubsumedBy(y)
-
     !sameArgs(outer, inner) && !switchedArgs(outer, inner) && !subsumedArgs(outer, inner)
   }
 

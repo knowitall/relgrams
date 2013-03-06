@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory
 import edu.washington.cs.knowitall.relgrams._
 import scopt.mutable.OptionParser
 import java.io.File
+import io.Source
 
 
 object RelgramsExtractorScoobiApp extends ScoobiApp{
@@ -56,11 +57,6 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     }
   }
 
-  def loadTupleDocuments(inputPath:String) = {
-    TextInput.fromTextFile(inputPath)
-      .flatMap(x => TuplesDocumentWithCorefMentions.fromString(x))
-  }
-
 
   def extractRelgramCountsAndTuples(tuplesDocuments: DList[TuplesDocumentWithCorefMentions], equality:Boolean, noequality:Boolean): DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] ={
     tuplesDocuments.flatMap(document => {
@@ -76,22 +72,13 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
       }
     })
   }
-
-
-  /**def reduceRelgramCounts(relgramCounts: DList[(String, RelgramCounts)]) = {
-    relgramCounts.map(x => (x._1, x._2))
-                 .groupByKey[String, RelgramCounts]
-                 .flatMap(x => counter.reduceRelgramCounts(x._2))
-  }*/
-
-
-  def reduceRelgramCounts(relgramCounts: DList[Map[String, RelgramCounts]]) = {
+  def reduceRelgramCounts(relgramCounts: DList[Map[String, RelgramCounts]]): DList[RelgramCounts] = {
     relgramCounts.flatten
                  .groupByKey[String, RelgramCounts]
                  .flatMap(x => counter.reduceRelgramCounts(x._2))
   }
 
-  def reduceTuplesCounts(tuplesCounts: DList[Map[String, RelationTuple]]) = {
+  def reduceTuplesCounts(tuplesCounts: DList[Map[String, RelationTuple]]): DList[RelationTupleCounts] = {
     import RelationTupleCounts._
     tuplesCounts.flatten
       .groupByKey[String, RelationTuple]
@@ -99,6 +86,9 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
   }
 
 
+  def loadTupleDocuments(inputPath: String) = {
+    TextInput.fromTextFile(inputPath).flatMap(x => TuplesDocumentWithCorefMentions.fromString(x))
+  }
 
   def run() {
 
@@ -123,9 +113,12 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     counter = new RelgramsCounter
 
     val tupleDocuments = loadTupleDocuments(inputPath)
+
     val extracts:DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] = extractRelgramCountsAndTuples(tupleDocuments, equality, noequality)
+
     val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1))
-    val reducedTupleCounts = reduceTuplesCounts(extracts.map(x => x._2))
+    val reducedTupleCounts   = reduceTuplesCounts(extracts.map(x => x._2))
+
     exportRelgrams(reducedRelgramCounts, outputPath)
     exportTuples(reducedTupleCounts, outputPath)
 

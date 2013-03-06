@@ -113,6 +113,7 @@ case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:I
   //This is probably extreme!
   val beVerbPPRemoveRe = """be (.*?) (.+$)""".r
   val beRemoveRe = """be (.*)""".r
+
   def cleanRelString(rel:String): String = beVerbPPRemoveRe.findFirstMatchIn(rel) match {
     case Some(m:Match) => m.group(1)
     case None => rel.replaceAll("""^be """, "")
