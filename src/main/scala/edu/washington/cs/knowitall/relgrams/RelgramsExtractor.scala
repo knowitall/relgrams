@@ -63,6 +63,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
         addToArgCounts(relationTuple.arg1HeadCounts, record.arg1Head)
         addToArgCounts(relationTuple.arg2HeadCounts, record.arg2Head)
         addToSentences(relationTuple, record.sentence)
+        relationTuplesMap += relKey -> relationTuple
         relationTuple
       }
     }
@@ -261,8 +262,11 @@ object RelgramsExtractorTest{
     val tuplesWriter = new PrintWriter(tuplesFile, "utf-8")
     tupleDocumentsWithCorefs.foreach(tdm => {
       val (relgramCounts, tuplesCounts) = relgramsExtractor.extractRelgramsFromDocument(tdm)
-      relgramCounts.map(rgcKV => relgramsWriter.println(relgramsString(rgcKV._2)))//prettyString))
-      tuplesCounts.map(tupleCount => tuplesWriter.println(tupleCount._2.prettyString))
+      println("RelgramCounts size: " + relgramCounts.keys.size)
+      println("Tuples size: " + tuplesCounts.keys.size)
+
+      relgramCounts.foreach(rgcKV => relgramsWriter.println(relgramsString(rgcKV._2)))//prettyString))
+      tuplesCounts.foreach(tupleCount => tuplesWriter.println(tupleCount._2.prettyString))
     })
     relgramsWriter.close()
     tuplesWriter.close()

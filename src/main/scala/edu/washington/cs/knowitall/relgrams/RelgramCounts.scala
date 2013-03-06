@@ -31,10 +31,17 @@ object RelationTupleCounts{
           case Some(tuple:RelationTuple) => {
             Some(new RelationTupleCounts(tuple, count))
           }
+          case None => None
         }
       }
       case None => None
     }
+  }
+
+  val dummyTupleCount = new RelationTupleCounts(RelationTuple.dummyTuple, 0)
+  implicit def RelationTupleCountsFmt = new WireFormat[RelationTupleCounts]{
+    def toWire(x: RelationTupleCounts, out: DataOutput) {out.writeBytes(x.toString + "\n")}
+    def fromWire(in: DataInput): RelationTupleCounts = RelationTupleCounts.fromSerializedString(in.readLine()).getOrElse(dummyTupleCount)//.getOrElse(RelgramCounts.DummyRelgramCounts)
   }
 }
 case class RelationTupleCounts(tuple:RelationTuple, var count:Int){
