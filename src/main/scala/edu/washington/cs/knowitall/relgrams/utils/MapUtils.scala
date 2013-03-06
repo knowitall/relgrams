@@ -51,12 +51,14 @@ object MapUtils {
     toAdd.map(kv => updateCounts(addWith, kv._1, kv._2))
   }
 
+
+
   def main(args:Array[String]){
     var map = new mutable.HashMap[String, Int]()
     updateCounts(map, "a", 1)
-    println("Map: " + map.mkString(","))
+    println("Map:%s".format(toCountsString(map)))
     updateCounts(map, "a", 2)
-    println("Map: " + map.mkString(","))
+    println("Map:%s".format(toCountsString(map)))
 
   }
   def updateCounts[A, B](counts:scala.collection.mutable.Map[A, B], key:A, count:B)(implicit numeric: Numeric[B]){

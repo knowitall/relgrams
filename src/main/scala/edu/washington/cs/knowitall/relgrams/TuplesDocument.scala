@@ -20,6 +20,50 @@ import java.io.{DataInput, DataOutput}
 
 object TuplesDocumentGenerator{
 
+  def trimDocument(indocument:TuplesDocument) = new TuplesDocument(indocument.docid, pruneLongSentences(indocument))
+  def pruneLongSentences(indocument: TuplesDocument): Seq[TypedTuplesRecord] = {
+    indocument.tupleRecords.filter(x => {
+      val numwords = x.sentence.split(" ").size
+      val out = numwords <= 75
+      if (!out) println("ignored\t%s\t%d\t%d".format(indocument.docid, x.sentid, numwords))
+      out
+    })
+  }
+
+  def sentenceIdsWithOffsets(document: TuplesDocument) = {//List[(String, Int)] = {
+  var offset = 0
+    var sentencesMap = new HashMap[Int, String]//new ArrayBuffer[String]()
+    var sentidOffsetsMap = new mutable.HashMap[Int, Int]()
+    document.tupleRecords.iterator.foreach(record => sentencesMap += record.sentid -> record.sentence)
+    var sentences = new ArrayBuffer[String]
+    var offsets = new ArrayBuffer[Int]()
+    sentencesMap.keys.toSeq.sortBy(key => key).foreach(key => {//document.tupleRecords.iterator.foreach(record => {
+    //println("key: " + key)
+    val sentence = sentencesMap(key)
+      sentences += sentence
+      offsets += offset
+      sentidOffsetsMap += key -> offset
+      offset = offset + sentence.length + 1
+    })
+    (sentencesMap, sentidOffsetsMap)
+    //(sentences.toList, offsets.toList)
+  }
+
+  def sentencesWithOffsets(document: TuplesDocument) = {//List[(String, Int)] = {
+  var offset = 0
+    var sentencesMap = new HashMap[Int, String]//new ArrayBuffer[String]()
+    document.tupleRecords.iterator.foreach(record => sentencesMap += record.sentid -> record.sentence)
+    var sentences = new ArrayBuffer[String]
+    var offsets = new ArrayBuffer[Int]()
+    sentencesMap.keys.toSeq.sortBy(key => key).foreach(key => {//document.tupleRecords.iterator.foreach(record => {
+      val sentence = sentencesMap(key)
+      sentences += sentence
+      offsets += offset
+      offset = offset + sentence.length + 1
+    })
+    (sentences.toList, offsets.toList)
+  }
+
 }
 
 class TuplesDocumentGenerator {
@@ -62,15 +106,8 @@ class TuplesDocumentGenerator {
   }
   def getTuplesDocumentWithCorefMentionsBlocks(indocument:TuplesDocument):Option[TuplesDocumentWithCorefMentions] = {
 
+    import TuplesDocumentGenerator._
 
-    def trimDocument(document:TuplesDocument) = {
-      new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => {
-        val numwords = x.sentence.split(" ").size
-        val out = numwords <= 75
-        if (!out) println("ignored\t%s\t%d\t%d".format(indocument.docid, x.sentid, numwords))
-        out
-      }))
-    }
     val out = try{
       val document = trimDocument(indocument)//indocument//new TuplesDocument(indocument.docid, indocument.tupleRecords.filter(x => x.sentence.split(" ").size < 35).take(50))
       val (sentences:List[String], offsets:List[Int]) = sentencesWithOffsets(document)
@@ -92,6 +129,9 @@ class TuplesDocumentGenerator {
     }
     out
   }
+
+
+
 
   def resolveInBlocks(document:TuplesDocument, sentences:List[String], offsets:List[Int]):Option[Map[Mention, List[Mention]]] = {
     val resolver = resolvers.getOrElseUpdate(Thread.currentThread(), new StanfordCoreferenceResolver())
@@ -124,20 +164,6 @@ class TuplesDocumentGenerator {
   }
 
 
-  def sentencesWithOffsets(document: TuplesDocument) = {//List[(String, Int)] = {
-    var offset = 0
-    var sentencesMap = new HashMap[Int, String]//new ArrayBuffer[String]()
-    document.tupleRecords.iterator.foreach(record => sentencesMap += record.sentid -> record.sentence)
-    var sentences = new ArrayBuffer[String]
-    var offsets = new ArrayBuffer[Int]()
-    sentencesMap.keys.toSeq.sortBy(key => key).foreach(key => {//document.tupleRecords.iterator.foreach(record => {
-      val sentence = sentencesMap(key)
-      sentences += sentence
-      offsets += offset
-      offset = offset + sentence.length + 1
-    })
-    (sentences.toList, offsets.toList)
-  }
 
   //Two relations are different as long as they are between different arguments.
   def areDifferentRelations(outer: TypedTuplesRecord, inner: TypedTuplesRecord): Boolean = {
@@ -242,6 +268,8 @@ object TuplesDocumentWithCorefMentions{
       TuplesDocument.fromString(splits(0)) match {
         case Some(tuplesDocument:TuplesDocument) => {
           val sentenceOffsets = splits(1).split(",").map(x => x.toInt).toList
+          //assert(tuplesDocument.tupleRecords.size == sentenceOffsets.size,
+          //  "Number of sentence records (%d) != (%d) Number of sentence offsets ".format(tuplesDocument.tupleRecords.size, sentenceOffsets.size))
           val mentions = if(splits.size > 2) MentionIO.fromMentionsMapString(splits(2)) else Map[Mention, List[Mention]]()
           Some(new TuplesDocumentWithCorefMentions(tuplesDocument, sentenceOffsets, mentions))
         }

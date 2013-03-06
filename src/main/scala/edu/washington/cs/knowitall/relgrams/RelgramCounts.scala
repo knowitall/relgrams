@@ -4,6 +4,7 @@ import collection.{mutable, Map, Set}
 import com.nicta.scoobi.core.WireFormat
 import java.io.{DataInput, DataOutput}
 import utils.MapUtils
+import util.matching.Regex
 
 /**
  * Created with IntelliJ IDEA.
@@ -16,6 +17,29 @@ import utils.MapUtils
 
 
 import edu.washington.cs.knowitall.relgrams.utils.MapUtils._
+
+
+object RelationTupleCounts{
+  val sep = "\t"
+  val lastTabRe = """(.*)\t([0-9]+)""".r
+  def fromSerializedString(string:String):Option[RelationTupleCounts] = {
+    lastTabRe.findFirstMatchIn(string) match {
+      case Some(m:Regex.Match) => {
+        val tupleString = m.group(0)
+        val count = m.group(1).toInt
+        RelationTuple.fromSerializedString(tupleString) match {
+          case Some(tuple:RelationTuple) => {
+            Some(new RelationTupleCounts(tuple, count))
+          }
+        }
+      }
+      case None => None
+    }
+  }
+}
+case class RelationTupleCounts(tuple:RelationTuple, var count:Int){
+  override def toString():String = tuple.serialize + "\t" + count
+}
 
 object RelationTuple{
   val sep = "\t"
@@ -37,7 +61,16 @@ object RelationTuple{
       None
     }
   }
+
+  val dummyTuple = new RelationTuple("NA", "NA", "NA", (0::Nil).toSet, Set(""),
+                                    new scala.collection.mutable.HashMap[String,Int](), new scala.collection.mutable.HashMap[String,Int]())
+
+  implicit def RelationTupleFmt = new WireFormat[RelationTuple]{
+    def toWire(x: RelationTuple, out: DataOutput) {out.writeBytes(x.serialize + "\n")}
+    def fromWire(in: DataInput): RelationTuple = RelationTuple.fromSerializedString(in.readLine()).getOrElse(dummyTuple)//.getOrElse(RelgramCounts.DummyRelgramCounts)
+  }
 }
+
 case class RelationTuple(arg1:String, rel:String, arg2:String,
                          var hashes:Set[Int],
                          var sentences:Set[String],
@@ -110,13 +143,11 @@ case class ArgCounts(firstArg1Counts:scala.collection.mutable.Map[String,Int],
 
 
 object RelgramCounts{
+
   def isDummy(rgc: RelgramCounts):Boolean = {
     rgc.relgram.first.arg1.equals("NA") &&  rgc.relgram.second.arg1.equals("NA")
   }
-
-
-  val dummyTuple = new RelationTuple("NA", "NA", "NA", (0::Nil).toSet, Set(""),
-                                     new scala.collection.mutable.HashMap[String,Int](), new scala.collection.mutable.HashMap[String,Int]())
+  import RelationTuple._
   val DummyRelgramCounts:RelgramCounts = new RelgramCounts(new Relgram(dummyTuple, dummyTuple), new mutable.HashMap[Int, Int](), ArgCounts.newInstance)
   implicit def RelgramCountsFmt = new WireFormat[RelgramCounts]{
     def toWire(x: RelgramCounts, out: DataOutput) {out.writeBytes(x.serialize + "\n")}

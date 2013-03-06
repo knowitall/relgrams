@@ -12,6 +12,7 @@ import utils.MapUtils
 class RelgramsCounter {
 
 
+
   def haveDisjointHashes(mergeWith: RelgramCounts, toMerge: RelgramCounts): Boolean = {
     val a1 = mergeWith.relgram.first.hashes
     val a2 = mergeWith.relgram.second.hashes
@@ -49,7 +50,6 @@ class RelgramsCounter {
 
 
   }
-
   def reduceRelgramCounts(rgcs:Iterable[RelgramCounts]) = {
     var outRGC:RelgramCounts = null
     rgcs.filter(rgc => {
@@ -67,6 +67,34 @@ class RelgramsCounter {
     })
     println("outrgc: " + outRGC.prettyString)
     if(outRGC != null) Some(outRGC) else None
+  }
+
+
+  def isDummyTuple(tuple: RelationTuple) = tuple.arg1.equals("NA")
+
+
+  def mergeTuple(mergedWith: RelationTuple, toMerge: RelationTuple){
+    MapUtils.addTo(mergedWith.arg1HeadCounts, toMerge.arg1HeadCounts)
+    MapUtils.addTo(mergedWith.arg2HeadCounts, toMerge.arg2HeadCounts)
+  }
+
+
+  def reduceTuples(tuples: Iterable[RelationTuple]) = {
+    var outTuple:RelationTuple = null
+    var count = 0
+    tuples.filter(tuple => !isDummyTuple(tuple)).foreach(tuple =>{
+      if (outTuple == null)
+        outTuple = tuple
+      else
+        mergeTuple(outTuple, tuple)
+      count = count + 1
+    })
+    if (outTuple != null){
+      Some(new RelationTupleCounts(outTuple, count))
+    }else{
+      None
+    }
+
   }
 
 }
