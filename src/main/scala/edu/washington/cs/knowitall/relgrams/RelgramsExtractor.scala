@@ -88,7 +88,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
 
 
-  def extractRelgramsFromDocument(document:TuplesDocumentWithCorefMentions)={
+  def extractRelgramsFromDocument(document:TuplesDocumentWithCorefMentions) = {
     val docid = document.tuplesDocument.docid
     val prunedRecords:Seq[(TypedTuplesRecord, Int)] = document.tuplesDocument.tupleRecords.zipWithIndex
     val mentions = document.mentions

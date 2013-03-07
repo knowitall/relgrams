@@ -33,7 +33,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
   def exportRelgrams(relgramCounts: DList[RelgramCounts], outputPath: String){
     try{
-      val relgramsPath = outputPath + File.separator + "relgrams"
+      val relgramsPath = outputPath + "-relgrams"
       persist(TextOutput.toTextFile(relgramCounts.map(x => x.prettyString), relgramsPath))
     }catch{
       case e:Exception => {
@@ -46,7 +46,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
   def exportTuples(tupleCounts: DList[RelationTupleCounts], outputPath: String){
     try{
-      val tuplesPath = outputPath + File.separator + "tuples"
+      val tuplesPath = outputPath + "-tuples"
       persist(TextOutput.toTextFile(tupleCounts.map(x => x.toString()), tuplesPath))
     }catch{
       case e:Exception => {
@@ -58,7 +58,8 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
   }
 
 
-  def extractRelgramCountsAndTuples(tuplesDocuments: DList[TuplesDocumentWithCorefMentions], equality:Boolean, noequality:Boolean): DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] ={
+  def extractRelgramCountsAndTuples(tuplesDocuments: DList[TuplesDocumentWithCorefMentions], maxWindow:Int, equality:Boolean, noequality:Boolean): DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] ={
+    val extractor = new RelgramsExtractor(maxWindow, equality, noequality)
     tuplesDocuments.flatMap(document => {
       val docid = document.tuplesDocument.docid
       try{
@@ -67,6 +68,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
         case e:Exception => {
           val d = if (docid != null) docid else "No docid present."
           println("Failed to extract relgrams from docid %s with exception:\n%s".format(d, e.getStackTraceString))
+          e.printStackTrace()
           None
         }
         case _ => None
@@ -74,6 +76,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     })
   }
   def reduceRelgramCounts(relgramCounts: DList[Map[String, RelgramCounts]]): DList[RelgramCounts] = {
+    val counter = new RelgramsCounter
     relgramCounts.flatten
                  .groupByKey[String, RelgramCounts]
                  .flatMap(x => counter.reduceRelgramCounts(x._2))
@@ -81,6 +84,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
   def reduceTuplesCounts(tuplesCounts: DList[Map[String, RelationTuple]]): DList[RelationTupleCounts] = {
     import RelationTupleCounts._
+    val counter = new RelgramsCounter
     tuplesCounts.flatten
       .groupByKey[String, RelationTuple]
       .flatMap(x => counter.reduceTuples(x._2))
@@ -88,7 +92,8 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
 
   def loadTupleDocuments(inputPath: String) = {
-    TextInput.fromTextFile(inputPath).flatMap(x => TuplesDocumentWithCorefMentions.fromString(x))
+    val input = TextInput.fromTextFile(inputPath)
+    input.flatMap(x => TuplesDocumentWithCorefMentions.fromString(x))
   }
 
   def run() {
@@ -110,15 +115,15 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
     assert(equality || noequality, "Both equality or noequality flags are false. One of them must be set true.")
 
-    extractor = new RelgramsExtractor(maxWindow, equality, noequality)
-    counter = new RelgramsCounter
+    //extractor = new RelgramsExtractor(maxWindow, equality, noequality)
+
 
     val tupleDocuments = loadTupleDocuments(inputPath)
 
-    val extracts:DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] = extractRelgramCountsAndTuples(tupleDocuments, equality, noequality)
+    val extracts:DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] = extractRelgramCountsAndTuples(tupleDocuments, maxWindow, equality, noequality)
 
     val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1))
-    val reducedTupleCounts   = reduceTuplesCounts(extracts.map(x => x._2))
+    val reducedTupleCounts = reduceTuplesCounts(extracts.map(x => x._2))
 
     exportRelgrams(reducedRelgramCounts, outputPath)
     exportTuples(reducedTupleCounts, outputPath)

@@ -267,8 +267,6 @@ object TuplesDocumentWithCorefMentions{
       TuplesDocument.fromString(splits(0)) match {
         case Some(tuplesDocument:TuplesDocument) => {
           val sentenceOffsets = splits(1).split(",").map(x => x.toInt).toList
-          //assert(tuplesDocument.tupleRecords.size == sentenceOffsets.size,
-          //  "Number of sentence records (%d) != (%d) Number of sentence offsets ".format(tuplesDocument.tupleRecords.size, sentenceOffsets.size))
           val mentions = if(splits.size > 2) MentionIO.fromMentionsMapString(splits(2)) else Map[Mention, List[Mention]]()
           Some(new TuplesDocumentWithCorefMentions(tuplesDocument, sentenceOffsets, mentions))
         }
