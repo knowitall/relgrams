@@ -135,15 +135,15 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
     val tupleDocuments = loadTupleDocuments(inputPath)
 
-    exportTupleDocuments(tupleDocuments)
-
+    exportTupleDocuments(tupleDocuments, outputPath)
+/**
     val extracts:DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] = extractRelgramCountsAndTuples(tupleDocuments, maxWindow, equality, noequality)
 
     val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1))
     val reducedTupleCounts = reduceTuplesCounts(extracts.map(x => x._2))
 
     exportRelgrams(reducedRelgramCounts, outputPath)
-    exportTuples(reducedTupleCounts, outputPath)
+    exportTuples(reducedTupleCounts, outputPath)      */
 
 
   }
