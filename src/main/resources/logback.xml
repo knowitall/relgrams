@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <appender name="FILE" class="ch.qos.logback.core.FileAppender">
     <file>relgramscore.log</file>

@@ -31,6 +31,19 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
   var extractor:RelgramsExtractor = null
   var counter:RelgramsCounter = null
 
+  def exportTupleDocuments(documents: DList[TuplesDocumentWithCorefMentions], outputPath: String){
+    try{
+      val relgramsPath = outputPath + "-tdocs"
+      persist(TextOutput.toTextFile(documents.map(doc => doc.toString), relgramsPath))
+    }catch{
+      case e:Exception => {
+        println("Failed to persist reduced relgrams.")
+        e.printStackTrace
+      }
+
+    }
+  }
+
   def exportRelgrams(relgramCounts: DList[RelgramCounts], outputPath: String){
     try{
       val relgramsPath = outputPath + "-relgrams"
@@ -43,6 +56,8 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
     }
   }
+
+
 
   def exportTuples(tupleCounts: DList[RelationTupleCounts], outputPath: String){
     try{
@@ -119,6 +134,8 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
 
     val tupleDocuments = loadTupleDocuments(inputPath)
+
+    exportTupleDocuments(tupleDocuments)
 
     val extracts:DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] = extractRelgramCountsAndTuples(tupleDocuments, maxWindow, equality, noequality)
 
