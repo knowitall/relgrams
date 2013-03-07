@@ -65,8 +65,8 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
         Some(extractor.extractRelgramsFromDocument(document))
       }catch{
         case e:Exception => {
-          val d = if (docid != null) docid else "NULL"
-          logger.error("Failed to extract relgrams from docid %s with exception:\n%s".format(d, e.toString))
+          val d = if (docid != null) docid else "No docid present."
+          println("Failed to extract relgrams from docid %s with exception:\n%s".format(d, e.getStackTraceString))
           None
         }
         case _ => None
