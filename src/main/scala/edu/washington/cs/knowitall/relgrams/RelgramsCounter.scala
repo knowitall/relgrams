@@ -52,7 +52,7 @@ class RelgramsCounter {
   }
   def reduceRelgramCounts(rgcs:Iterable[RelgramCounts]) = {
     var outRGC:RelgramCounts = null
-    rgcs.filter(rgc => {
+    rgcs.toSeq.filter(rgc => {
       val filterVal = !RelgramCounts.isDummy(rgc)
       if(filterVal == false){
         println("Ignoring dummy rgc: " + rgc)
@@ -65,7 +65,7 @@ class RelgramsCounter {
         merge(outRGC, rgc)
       }
     })
-    println("outrgc: " + outRGC.prettyString)
+    //println("outrgc: " + outRGC.prettyString)
     if(outRGC != null) Some(outRGC) else None
   }
 
