@@ -130,7 +130,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
 
 
-    val prunedMentions = mentions//pruneMentions(mentions)
+    val prunedMentions = pruneMentions(mentions)
     //println("Mentions size: " + mentions.size)
     val recordRelationTuples = new mutable.HashMap[Int, ArrayBuffer[RelationTuple]]()
     getRecordsIterator.foreach(index => {
