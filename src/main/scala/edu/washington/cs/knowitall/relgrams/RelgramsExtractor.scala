@@ -76,17 +76,19 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
   }
 
 
-  def subsumes(first: RelationTuple, second: RelationTuple) = {
-      def sameArgs(x:RelationTuple, y:RelationTuple)     = x.arg1.equalsIgnoreCase(y.arg1) && x.arg2.equalsIgnoreCase(y.arg2)
-      def switchedArgs(x:RelationTuple, y:RelationTuple) = x.arg1.equalsIgnoreCase(y.arg2) && x.arg2.equalsIgnoreCase(y.arg1)
-      def subsumedArgs(x:RelationTuple, y:RelationTuple) = x.subsumesOrSubsumedBy(y)
+  def subsumes(first: TypedTuplesRecord, second: TypedTuplesRecord) = {
+      def sameArgs(x:TypedTuplesRecord, y:TypedTuplesRecord)     = x.arg1.equalsIgnoreCase(y.arg1) && x.arg2.equalsIgnoreCase(y.arg2)
+      def switchedArgs(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.arg1.equalsIgnoreCase(y.arg2) && x.arg2.equalsIgnoreCase(y.arg1)
+      def subsumedArgs(x:TypedTuplesRecord, y:TypedTuplesRecord) = x.subsumesOrSubsumedBy(y)
       val same = sameArgs(first, second)
       val switched = switchedArgs(first, second)
       val subsumed = subsumedArgs(first, second)
+
       same || switched || subsumed
   }
 
 
+  def isTypedTuple(tuple:RelationTuple) = tuple.arg1.startsWith("Type:") || tuple.arg2.startsWith("Type:")
 
   def extractRelgramsFromDocument(document:TuplesDocumentWithCorefMentions): (Map[String, RelgramCounts], Map[String, RelationTuple]) = {
     //val docid = document.tuplesDocument.docid
@@ -94,23 +96,14 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
     var relationTuplesMap = new mutable.HashMap[String, RelationTuple]()
 
-
-
-
-    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = document.tuplesDocument.tupleRecords.zipWithIndex
-    //println("Pruned records: " + prunedRecords.size)
-
-
+    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = document.tuplesDocument.tupleRecords.sortBy(r => (r.sentid, r.extrid)).zipWithIndex
 
     val mentions = document.mentions
     val trimdocument = TuplesDocumentGenerator.trimDocument(document.tuplesDocument)
 
     val sentencesWithOffsets = TuplesDocumentGenerator.sentenceIdsWithOffsets(trimdocument)._2
-    //println("Sentences with offsets: " + sentencesWithOffsets.size)
 
-    def getRecordsIterator = prunedRecords.iterator//.filter(index => sentencesWithOffsets.keys.contains(index._2))
-
-
+    def getRecordsIterator = prunedRecords.iterator
 
     val argRepCache = new mutable.HashMap[(Int, Int), (Set[String], Set[String])]()
     def argRepresentations(record:TypedTuplesRecord) = {
@@ -126,13 +119,8 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
       mentions.map(kv => kv._1 -> kv._2.filter(mention => mention.text.split(" ").size <= 5))
     }
 
-
-
-
-
     val prunedMentions = pruneMentions(mentions)
-    //println("Mentions size: " + mentions.size)
-    val recordRelationTuples = new mutable.HashMap[Int, ArrayBuffer[RelationTuple]]()
+    val recordRelationTuples = new mutable.HashMap[(Int, Int), ArrayBuffer[RelationTuple]]()
     getRecordsIterator.foreach(index => {
       val record = index._1
       val (arg1s, arg2s) = argRepresentations(record)
@@ -141,20 +129,20 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
       val rel = record.relHead
       arg1s.foreach(arg1 => {
         arg2s.foreach(arg2 => {
-          recordRelationTuples.getOrElseUpdate(record.sentid, new ArrayBuffer[RelationTuple]()) += createOrGetRelationTuple(arg1, rel, arg2, record, sentences, ids, relationTuplesMap)
+          recordRelationTuples.getOrElseUpdate((record.sentid, record.extrid), new ArrayBuffer[RelationTuple]()) += createOrGetRelationTuple(arg1, rel, arg2, record, sentences, ids, relationTuplesMap)
         })
       })
     })
-    //println("Relation tuples: " + recordRelationTuples.size)
 
     getRecordsIterator.foreach(outerIndex => {
 
       val outer = outerIndex._1
       val oindex = outerIndex._2
       val outerStartOffset = startingOffset(outer)
-      val outerRelationTuples = recordRelationTuples.get(outer.sentid).get
+      val outerRelationTuples = recordRelationTuples.get((outer.sentid, outer.extrid)).get
       val addedSeconds = new mutable.HashSet[String]()
       getRecordsIterator.filter(innerIndex => (innerIndex._2 > oindex) && (innerIndex._2 <= oindex+maxWindow))
+                        .filter(innerIndex => outer.sentid != innerIndex._1.sentid || !subsumes(outer, innerIndex._1))
                         .foreach(innerIndex => {
         val iindex = innerIndex._2
         val countWindow = iindex-oindex
@@ -166,25 +154,29 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
           }
           case false => None
         }
-        val innerRelationTuples = recordRelationTuples.get(inner.sentid).get
-        outerRelationTuples.foreach(first => {
-          innerRelationTuples.filter(second => outer.sentid != inner.sentid || !subsumes(first, second))
-                              .foreach(second => {
-            noequality match {
-              case true => {
-                val relKey = relationTupleKey(second)
-                if (!addedSeconds.contains(relKey)) addToRelgramCounts(outer, inner, first, second, countWindow, relgramCountsMap)
-                addedSeconds += relKey
-              }
-              case false =>
+        val innerRelationTuples = recordRelationTuples.get((inner.sentid, inner.extrid)).get
+
+        import edu.washington.cs.knowitall.relgrams.utils.Crossable._
+        val firstSeconds = (outerRelationTuples x innerRelationTuples)
+          firstSeconds.foreach(firstsecond => {
+          val first = firstsecond._1
+          val second = firstsecond._2
+          noequality match {
+            case true => {
+              val relKey = relationTupleKey(second)
+              if (!addedSeconds.contains(relKey)) addToRelgramCounts(outer, inner, first, second, countWindow, relgramCountsMap)
+              addedSeconds += relKey
             }
-            corefArgs match {
-              case Some(resolvedArgs:(String, String, String, String)) => {
-                extractEqualityRelgrams(resolvedArgs, outer, inner, first, second, relationTuplesMap, relgramCountsMap, countWindow, addedSeconds)
-              }
-              case None =>
+            case false =>
+          }
+
+          corefArgs match {
+            case Some(resolvedArgs:(String, String, String, String)) => {
+              extractEqualityRelgrams(resolvedArgs, outer, inner, first, second, relationTuplesMap, relgramCountsMap, countWindow, addedSeconds)
             }
-          })
+            case None =>
+          }
+
         })
       })
     })
@@ -214,8 +206,8 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
     val rgc = relgramCountsMap.getOrElseUpdate(relgramKey(first, second),
       new RelgramCounts(new Relgram(first, second),
-        new scala.collection.mutable.HashMap[Int, Int],
-        ArgCounts.newInstance))
+                        new scala.collection.mutable.HashMap[Int, Int],
+                        ArgCounts.newInstance))
     updateCounts(rgc.counts, countWindow, 1)
     updateArgCounts(rgc.argCounts, outer.arg1Head, outer.arg2Head, inner.arg1Head, inner.arg2Head)
   }
@@ -235,15 +227,39 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     val infa2 = resolvedArgs._2
     val insa1 = resolvedArgs._3
     val insa2 = resolvedArgs._4
+
     def isType(string: String) = string.startsWith("Type:")
     def isVar(string: String) = string.startsWith(CoreferringArguments.XVAR)
-    val fa1 = if (isVar(infa1) && isType(first.arg1)) infa1 + ':' + first.arg1 else infa1
-    val fa2 = if (isVar(infa2) && isType(first.arg2)) infa2 + ':' + first.arg2 else infa2
-    val sa1 = if (isVar(insa1) && isType(second.arg1)) insa1 + ':' + second.arg1 else insa1
-    val sa2 = if (isVar(insa2) && isType(second.arg2)) insa2 + ':' + second.arg2 else insa2
+
+    def argRep(resolved:String, unresolved:String) = {
+      (isVar(resolved), isType(unresolved)) match {
+        case (true, true) => resolved + ':' + unresolved
+        case (true, false) => resolved
+        case _ => unresolved
+      }
+    }
+
+
+
+    val fa1 = argRep(infa1, first.arg1)
+    val fa2 = argRep(infa2, first.arg2)
+    val sa1 = argRep(insa1, second.arg1)
+    val sa2 = argRep(insa2, second.arg2)
+
+    def isTypedVar(resolvedArg:String) = {
+      val splits = resolvedArg.split(":")
+      splits.size == 3 && splits(1).equals("Type")
+    }
+    val farg = if(isTypedVar(fa1)) fa1.split(":")(2) else if (isTypedVar(fa2)) fa2.split(":")(2) else "NA"
+    val sarg = if(isTypedVar(sa1)) sa1.split(":")(2) else if (isTypedVar(sa2)) sa2.split(":")(2) else "NA"
+    if (!(farg.equals("NA") || sarg.equals("NA")) && !(farg.equals(sarg))){
+      return
+    }
 
     val secondKey = relationTupleKey(sa1, inner.relHead, sa2)
+
     if (addedSeconds.contains(secondKey)) return
+
 
 
     val firstSentences = new mutable.HashSet[String]
@@ -262,8 +278,9 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
     val corefRgc = relgramCountsMap.getOrElseUpdate(relgramKey(firstCoref, secondCoref),
       new RelgramCounts(new Relgram(firstCoref, secondCoref),
-        new scala.collection.mutable.HashMap[Int, Int],
-        ArgCounts.newInstance))
+                        new scala.collection.mutable.HashMap[Int, Int],
+                        ArgCounts.newInstance))
+
     updateCounts(corefRgc.counts, countWindow, 1)
     updateArgCounts(corefRgc.argCounts, outer.arg1Head, outer.arg2Head, inner.arg1Head, inner.arg2Head)
   }
