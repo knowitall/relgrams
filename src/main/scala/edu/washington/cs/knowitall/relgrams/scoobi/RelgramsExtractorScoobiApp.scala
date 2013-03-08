@@ -33,7 +33,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
   def exportTupleDocuments(documents: DList[TuplesDocumentWithCorefMentions], outputPath: String){
     try{
-      val relgramsPath = outputPath + "-tdocs"
+      val relgramsPath = outputPath + File.separator + "tdocs"
       persist(TextOutput.toTextFile(documents.map(doc => doc.toString), relgramsPath))
     }catch{
       case e:Exception => {
@@ -46,7 +46,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
   def exportRelgrams(relgramCounts: DList[RelgramCounts], outputPath: String){
     try{
-      val relgramsPath = outputPath + "-relgrams"
+      val relgramsPath = outputPath + File.separator + "relgrams"
       persist(TextOutput.toTextFile(relgramCounts.map(x => x.prettyString), relgramsPath))
     }catch{
       case e:Exception => {
@@ -61,7 +61,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
   def exportTuples(tupleCounts: DList[RelationTupleCounts], outputPath: String){
     try{
-      val tuplesPath = outputPath + "-tuples"
+      val tuplesPath = outputPath + File.separator + "tuples"
       persist(TextOutput.toTextFile(tupleCounts.map(x => x.toString()), tuplesPath))
     }catch{
       case e:Exception => {
