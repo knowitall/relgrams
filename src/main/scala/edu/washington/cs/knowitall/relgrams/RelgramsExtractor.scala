@@ -88,18 +88,29 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
 
 
-  def extractRelgramsFromDocument(document:TuplesDocumentWithCorefMentions) = {
-    val docid = document.tuplesDocument.docid
-    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = document.tuplesDocument.tupleRecords.zipWithIndex
-    val mentions = document.mentions
-
-    val trimdocument = TuplesDocumentGenerator.trimDocument(document.tuplesDocument)
-    val sentencesWithOffsets = TuplesDocumentGenerator.sentenceIdsWithOffsets(trimdocument)._2
+  def extractRelgramsFromDocument(document:TuplesDocumentWithCorefMentions): (Map[String, RelgramCounts], Map[String, RelationTuple]) = {
+    //val docid = document.tuplesDocument.docid
 
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
     var relationTuplesMap = new mutable.HashMap[String, RelationTuple]()
 
+
+
+
+    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = document.tuplesDocument.tupleRecords.zipWithIndex
+    //println("Pruned records: " + prunedRecords.size)
+
+
+
+    val mentions = document.mentions
+    val trimdocument = TuplesDocumentGenerator.trimDocument(document.tuplesDocument)
+
+    val sentencesWithOffsets = TuplesDocumentGenerator.sentenceIdsWithOffsets(trimdocument)._2
+    //println("Sentences with offsets: " + sentencesWithOffsets.size)
+
     def getRecordsIterator = prunedRecords.iterator//.filter(index => sentencesWithOffsets.keys.contains(index._2))
+
+
 
     val argRepCache = new mutable.HashMap[(Int, Int), (Set[String], Set[String])]()
     def argRepresentations(record:TypedTuplesRecord) = {
@@ -111,15 +122,17 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     }
     def startingOffset(record:TypedTuplesRecord) = sentencesWithOffsets.getOrElse(record.sentid, -1000000)
 
-
     def pruneMentions(mentions: Map[Mention, List[Mention]]): Map[Mention, List[Mention]] = {
       mentions.map(kv => kv._1 -> kv._2.filter(mention => mention.text.split(" ").size <= 5))
     }
 
-    val prunedMentions = pruneMentions(mentions)
 
+
+
+
+    val prunedMentions = mentions//pruneMentions(mentions)
+    //println("Mentions size: " + mentions.size)
     val recordRelationTuples = new mutable.HashMap[Int, ArrayBuffer[RelationTuple]]()
-
     getRecordsIterator.foreach(index => {
       val record = index._1
       val (arg1s, arg2s) = argRepresentations(record)
@@ -132,6 +145,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
         })
       })
     })
+    //println("Relation tuples: " + recordRelationTuples.size)
 
     getRecordsIterator.foreach(outerIndex => {
 
@@ -148,10 +162,8 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
         val innerStartOffset = startingOffset(inner)
         val corefArgs:Option[(String, String, String, String)] = equality match {
           case true => {
-
             CoreferringArguments.coreferringArgs(outer, outerStartOffset, inner, innerStartOffset, prunedMentions)
           }
-
           case false => None
         }
         val innerRelationTuples = recordRelationTuples.get(inner.sentid).get
@@ -176,7 +188,8 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
         })
       })
     })
-    (relgramCountsMap.toMap, relationTuplesMap.toMap)
+    return (relgramCountsMap.toMap, relationTuplesMap.toMap)
+
   }
 
   def distribute(rgcMap: Map[String, RelgramCounts]) = {

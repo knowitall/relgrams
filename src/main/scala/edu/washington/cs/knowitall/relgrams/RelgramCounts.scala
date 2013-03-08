@@ -41,8 +41,8 @@ object RelationTupleCounts{
 
   val dummyTupleCount = new RelationTupleCounts(RelationTuple.dummyTuple, 0)
   implicit def RelationTupleCountsFmt = new WireFormat[RelationTupleCounts]{
-    def toWire(x: RelationTupleCounts, out: DataOutput) {out.writeBytes(x.toString + "\n")}
-    def fromWire(in: DataInput): RelationTupleCounts = RelationTupleCounts.fromSerializedString(in.readLine()).getOrElse(dummyTupleCount)//.getOrElse(RelgramCounts.DummyRelgramCounts)
+    def toWire(x: RelationTupleCounts, out: DataOutput) {out.writeUTF(x.toString)}
+    def fromWire(in: DataInput): RelationTupleCounts = RelationTupleCounts.fromSerializedString(in.readUTF()).getOrElse(dummyTupleCount)//.getOrElse(RelgramCounts.DummyRelgramCounts)
   }
 }
 case class RelationTupleCounts(tuple:RelationTuple, var count:Int){
@@ -77,10 +77,8 @@ object RelationTuple{
   val dummyTuple = new RelationTuple("NA", "NA", "NA", Set(0), Set("NA"), Set("NA"),
                                     new scala.collection.mutable.HashMap[String,Int](), new scala.collection.mutable.HashMap[String,Int]())
 
-  implicit def RelationTupleFmt = new WireFormat[RelationTuple]{
-    def toWire(x: RelationTuple, out: DataOutput) {out.writeBytes(x.serialize + "\n")}
-    def fromWire(in: DataInput): RelationTuple = RelationTuple.fromSerializedString(in.readLine()).getOrElse(dummyTuple)
-  }
+
+
 
 
 
@@ -96,6 +94,13 @@ object RelationTuple{
   def setSubsumption(awords: Array[String], bwords: Array[String]): Boolean = {
     awords.filter(a => !a.equals("be")).toSet.subsetOf(bwords.filter(b => !b.equals("be")).toSet)
   }
+
+
+  implicit def RelationTupleFmt = new WireFormat[RelationTuple]{
+    def toWire(x: RelationTuple, out: DataOutput) {out.writeUTF(x.serialize)}
+    def fromWire(in: DataInput): RelationTuple = RelationTuple.fromSerializedString(in.readUTF()).getOrElse(dummyTuple)
+  }
+
 
 
 }
@@ -196,8 +201,8 @@ object RelgramCounts{
   import RelationTuple._
   val DummyRelgramCounts:RelgramCounts = new RelgramCounts(new Relgram(dummyTuple, dummyTuple), new mutable.HashMap[Int, Int](), ArgCounts.newInstance)
   implicit def RelgramCountsFmt = new WireFormat[RelgramCounts]{
-    def toWire(x: RelgramCounts, out: DataOutput) {out.writeBytes(x.serialize + "\n")}
-    def fromWire(in: DataInput): RelgramCounts = RelgramCounts.fromSerializedString(in.readLine()).getOrElse(DummyRelgramCounts)//.getOrElse(RelgramCounts.DummyRelgramCounts)
+    override def toWire(x: RelgramCounts, out: DataOutput) {out.writeUTF(x.serialize)}
+    override def fromWire(in: DataInput): RelgramCounts = RelgramCounts.fromSerializedString(in.readUTF()).getOrElse(DummyRelgramCounts)//.getOrElse(RelgramCounts.DummyRelgramCounts)
   }
   val sep = "_RGC_SEP_"
   def fromSerializedString(serializedString:String):Option[RelgramCounts] = {

@@ -7,7 +7,7 @@ import collection.mutable.{HashMap, ArrayBuffer}
 import collection.mutable
 import org.slf4j.LoggerFactory
 import com.nicta.scoobi.core.WireFormat
-import java.io.{DataInput, DataOutput}
+import java.io.{StringWriter, DataInput, DataOutput}
 
 
 /**
@@ -284,8 +284,10 @@ object TuplesDocumentWithCorefMentions{
   val tdocsep = "_TDOC_SEP_"
 
   implicit def TuplesDocumentWithCorefMentionsFmt = new WireFormat[TuplesDocumentWithCorefMentions]{
-    def toWire(x: TuplesDocumentWithCorefMentions, out: DataOutput) {out.writeBytes(x.toString + "\n")}
-    def fromWire(in: DataInput): TuplesDocumentWithCorefMentions = TuplesDocumentWithCorefMentions.fromString(in.readLine()).get
+    def toWire(x: TuplesDocumentWithCorefMentions, out: DataOutput){out.writeUTF(x.toString)}
+    def fromWire(in: DataInput): TuplesDocumentWithCorefMentions = {
+      TuplesDocumentWithCorefMentions.fromString(in.readUTF()).get
+    }
   }
 
 }
@@ -332,16 +334,18 @@ case class TuplesDocumentWithCorefMentions(tuplesDocument:TuplesDocument,
                                            mentions:Map[Mention, List[Mention]]){
   import TuplesDocumentWithCorefMentions._
   override def toString:String = {
-    "%s%s%s%s%s".format(tuplesDocument.toString(), tdocsep, sentenceOffsets.mkString(","), tdocsep, MentionIO.mentionsMapString(mentions))
+    "%s%s%s%s%s".format(tuplesDocument.toString(), tdocsep,
+                        sentenceOffsets.mkString(","), tdocsep,
+                        MentionIO.mentionsMapString(mentions))
   }
 }
 
 object TuplesDocument{
 
   val logger = LoggerFactory.getLogger(this.getClass)
-
   val docidsep = "_DOCID_SEP_"
   val recsep = "_RECORD_SEP_"
+
   def fromString(string:String):Option[TuplesDocument] = {
     val splits = string.split(docidsep)
     if (splits.size == 2){
@@ -352,18 +356,16 @@ object TuplesDocument{
         Some(new TuplesDocument(docid, records))
       }else{
         logger.error("Failed to read document from line: " + string)
-        //println("Failed to read document from line: " + string)
         None
       }
     }else{
       logger.error("Failed to read document with splits size != 2. Actual = %d. Line:\n%s".format(splits.size, string))
-      //println("Failed to read document with splits size != 2. Actual = %d. Line:\n%s".format(splits.size, string))
       None
     }
   }
   implicit def TuplesDocumentFmt = new WireFormat[TuplesDocument]{
-    def toWire(x: TuplesDocument, out: DataOutput) {out.writeBytes(x.toString + "\n")}
-    def fromWire(in: DataInput): TuplesDocument = TuplesDocument.fromString(in.readLine()).get
+    def toWire(x: TuplesDocument, out: DataOutput) {out.writeUTF(x.toString())}
+    def fromWire(in: DataInput): TuplesDocument = {TuplesDocument.fromString(in.readUTF()).get}
   }
 }
 
@@ -412,19 +414,3 @@ object CorefDocumentTester{
 
   }
 }
-
-
-
-/**
-val third = sentences.size/3
-    val twoThird = sentences.size*2/3
-    val startBlock = sentences.take(third)
-    val startOffsets = offsets.take(third)
-    val middleBlock = sentences.slice(third, twoThird)
-    val middleStartOffset = startBlock.mkString("\n").size
-    val middleOffsets = offsets.slice(third, twoThird).map(o => o + middleStartOffset)
-    val endBlock = sentences.slice(twoThird, sentences.size)
-    val endStartOffset = (startBlock ++ middleBlock).mkString("\n").size
-    val endOffsets = offsets.slice(twoThird, sentences.size).map(o => o + endStartOffset)
-
-    (sentences, offsets, (startBlock, startOffsets)::(middleBlock, middleOffsets)::(endBlock, endOffsets)::Nil)    */

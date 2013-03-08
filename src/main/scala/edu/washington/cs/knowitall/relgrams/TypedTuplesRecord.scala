@@ -92,8 +92,8 @@ object TypedTuplesRecord{
   }
 
   implicit def TypedTuplesRecordFmt = new WireFormat[TypedTuplesRecord]{
-    def toWire(x: TypedTuplesRecord, out: DataOutput) {out.writeBytes(x.toString + "\n")}
-    def fromWire(in: DataInput): TypedTuplesRecord = TypedTuplesRecord.fromString(in.readLine()).get//.getOrElse(RelgramCounts.DummyRelgramCounts)
+    def toWire(x: TypedTuplesRecord, out: DataOutput) {out.writeUTF(x.toString)}
+    def fromWire(in: DataInput): TypedTuplesRecord = {TypedTuplesRecord.fromString(in.readUTF()).get}
   }
 
 }
@@ -133,13 +133,4 @@ case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:I
     thatString.contains(thisString) ||
     setSubsumption(thisString.split(" "), thatString.split(" "))
   }
-  /**def subsumes(that: TypedTuplesRecord):Boolean = {
-    val thisString = this.normTupleString()
-    val thatString = that.normTupleString()
-    val subsumesVal = thisString.contains(thatString) ||
-                      thatString.contains(thisString) ||
-                      setSubsumption(thisString.split(" "), thatString.split(" "))
-    return subsumesVal
-
-  }*/
 }
