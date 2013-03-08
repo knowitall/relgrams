@@ -96,7 +96,10 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
     var relationTuplesMap = new mutable.HashMap[String, RelationTuple]()
 
-    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = document.tuplesDocument.tupleRecords.sortBy(r => (r.sentid, r.extrid)).zipWithIndex
+    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = document.tuplesDocument
+                                                              .tupleRecords
+                                                              .sortBy(r => (r.sentid, r.extrid))
+                                                              .zipWithIndex
 
     val mentions = document.mentions
     val trimdocument = TuplesDocumentGenerator.trimDocument(document.tuplesDocument)
@@ -133,7 +136,6 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
         })
       })
     })
-
     getRecordsIterator.foreach(outerIndex => {
 
       val outer = outerIndex._1
