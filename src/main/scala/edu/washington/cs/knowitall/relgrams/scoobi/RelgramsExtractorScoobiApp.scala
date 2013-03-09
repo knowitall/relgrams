@@ -87,16 +87,16 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     })
     Some(relgrams)
   }
-  def reduceRelgramCounts(relgramCounts: DList[Map[String, RelgramCounts]]): DList[RelgramCounts] = {
-    val counter = new RelgramsCounter
+  def reduceRelgramCounts(relgramCounts: DList[Map[String, RelgramCounts]], maxSize:Int = 5): DList[RelgramCounts] = {
+    val counter = new RelgramsCounter(maxSize)
     relgramCounts.flatten
                  .groupByKey[String, RelgramCounts]
                  .flatMap(x => counter.reduceRelgramCounts(x._2))
   }
 
-  def reduceTuplesCounts(tuplesCounts: DList[Map[String, RelationTuple]]): DList[RelationTupleCounts] = {
+  def reduceTuplesCounts(tuplesCounts: DList[Map[String, RelationTuple]], maxSize:Int = 5): DList[RelationTupleCounts] = {
     import RelationTupleCounts._
-    val counter = new RelgramsCounter
+    val counter = new RelgramsCounter(maxSize)
     tuplesCounts.flatten
       .groupByKey[String, RelationTuple]
       .flatMap(x => counter.reduceTuples(x._2))
@@ -112,6 +112,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
 
     var inputPath, outputPath = ""
     var maxWindow = 10
+    var maxSize = 5
     var equality = false
     var noequality = false
 
@@ -119,6 +120,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
       arg("inputPath", "hdfs input path", {str => inputPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
       opt("maxWindow", "max window size", {str => maxWindow = str.toInt})
+      opt("maxSize", "max size for id's arg head values etc.", {str => maxSize = str.toInt})
       opt("equality", "Argument equality tuples.", {str => equality = str.toBoolean})
       opt("noequality", "Count tuples without equality.", {str => noequality = str.toBoolean})
     }
@@ -134,8 +136,8 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     extractRelgramCountsAndTuples(tupleDocuments, maxWindow, equality, noequality) match {
        case Some(extracts:DList[(Map[String, RelgramCounts], Map[String, RelationTuple])]) => {
 
-         val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1))
-         val reducedTupleCounts   = reduceTuplesCounts(extracts.map(x => x._2))
+         val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1), maxSize)
+         val reducedTupleCounts   = reduceTuplesCounts(extracts.map(x => x._2), maxSize)
 
          exportRelgrams(reducedRelgramCounts, outputPath)
          exportTuples(reducedTupleCounts, outputPath)

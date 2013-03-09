@@ -12,10 +12,9 @@ package edu.washington.cs.knowitall.relgrams.utils
 import scala.collection.JavaConversions._
 
 import Numeric._
-import collection.{Map, mutable}
+import collection.{mutable, Map}
 
 object MapUtils {
-
 
 
   val esep = "_ESEP_"
@@ -57,6 +56,10 @@ object MapUtils {
   def toSafeCountsString[A](counts:Map[A, Int])(implicit ordering:Ordering[A]):String = toCountsString(counts, esep, csep)
 
   def toCountsString[A](counts:Map[A, Int], esep:String, csep:String)(implicit ordering:Ordering[A]):String = counts.toSeq.sortBy(x => x._1).map(wc => wc._1 + csep + wc._2).mkString(esep)
+
+  def addToUntilSize[A,B](addWith: mutable.Map[A, B], toAdd: mutable.Map[A, B], maxSize: Int)(implicit numeric: Numeric[B]) = {
+    if (addWith.keys.size < maxSize) addTo[A,B](addWith, toAdd)
+  }
 
   def addTo[A, B](addWith: mutable.Map[A, B], toAdd: mutable.Map[A, B])(implicit numeric: Numeric[B]){
     toAdd.map(kv => updateCounts(addWith, kv._1, kv._2))

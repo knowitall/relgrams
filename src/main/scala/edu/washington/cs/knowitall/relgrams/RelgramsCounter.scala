@@ -9,7 +9,7 @@ import utils.MapUtils
  * Time: 3:31 PM
  * To change this template use File | Settings | File Templates.
  */
-class RelgramsCounter {
+class RelgramsCounter(maxSize:Int) {
 
 
 
@@ -27,15 +27,26 @@ class RelgramsCounter {
   }
 
   def mergeArgCounts(mergeWith: RelgramCounts, toMerge: RelgramCounts) {
-    MapUtils.addTo(mergeWith.argCounts.firstArg1Counts, toMerge.argCounts.firstArg1Counts)
-    MapUtils.addTo(mergeWith.argCounts.firstArg2Counts, toMerge.argCounts.firstArg2Counts)
-    MapUtils.addTo(mergeWith.argCounts.secondArg1Counts, toMerge.argCounts.secondArg1Counts)
-    MapUtils.addTo(mergeWith.argCounts.secondArg1Counts, toMerge.argCounts.secondArg2Counts)
+
+    MapUtils.addToUntilSize(mergeWith.argCounts.firstArg1Counts, toMerge.argCounts.firstArg1Counts, maxSize)
+    MapUtils.addToUntilSize(mergeWith.argCounts.firstArg2Counts, toMerge.argCounts.firstArg2Counts, maxSize)
+    MapUtils.addToUntilSize(mergeWith.argCounts.secondArg1Counts, toMerge.argCounts.secondArg1Counts, maxSize)
+    MapUtils.addToUntilSize(mergeWith.argCounts.secondArg1Counts, toMerge.argCounts.secondArg2Counts, maxSize)
   }
 
   def mergeCounts(mergeWith: RelgramCounts, toMerge: RelgramCounts){
     MapUtils.addTo(mergeWith.counts, toMerge.counts)
   }
+
+  def mergeIds(mergeWith: RelgramCounts, toMerge: RelgramCounts, maxNumberOfIds:Int){
+    if (mergeWith.relgram.first.ids.size < maxNumberOfIds){
+      mergeWith.relgram.second.ids ++= toMerge.relgram.second.ids
+    }
+    if (mergeWith.relgram.second.ids.size < maxNumberOfIds){
+      mergeWith.relgram.first.ids ++= toMerge.relgram.first.ids
+    }
+  }
+
 
   def merge(mergeWith: RelgramCounts, toMerge: RelgramCounts){
 
@@ -43,6 +54,7 @@ class RelgramsCounter {
       updateHashes(mergeWith, toMerge)
       mergeArgCounts(mergeWith, toMerge)
       mergeCounts(mergeWith, toMerge)
+      mergeIds(mergeWith, toMerge, maxSize)
     }else{
       println("Not merging1: " + mergeWith)
       println("Not merging2: " + toMerge)

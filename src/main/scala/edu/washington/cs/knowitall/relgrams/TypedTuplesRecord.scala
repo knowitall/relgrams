@@ -104,33 +104,38 @@ case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:I
                              arg1Types:Seq[String], arg2Types:Seq[String]){
 
 
+
   import TypedTuplesRecord._
   override def toString:String = "%s\t%d\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s".format(docid, sentid, sentence, extrid, hashes.mkString(","),
   textSpan(arg1, arg1Interval), textSpan(rel, relInterval), textSpan(arg2, arg2Interval),
   textSpan(arg1Head, arg1HeadInterval), textSpan(relHead, relHeadInterval), textSpan(arg2Head, arg2HeadInterval),
   arg1Types.mkString(","), arg2Types.mkString(","))
 
-  //This is probably extreme!
-  val beVerbPPRemoveRe = """be (.*?) (.+$)""".r
+
   val beRemoveRe = """be (.*)""".r
 
-  def cleanRelString(rel:String): String = beVerbPPRemoveRe.findFirstMatchIn(rel) match {
-    case Some(m:Match) => m.group(1)
-    case None => rel.replaceAll("""^be """, "")
-  }
+  def cleanRelString(r:String): String = r.replaceAll("""^be """, "")
 
   def normTupleString(): String = {
-    arg1Head + " " + cleanRelString(relHead) + " " + arg2Head
+    arg1 + " " + cleanRelString(rel) + " " + arg2
   }
 
   def setSubsumption(awords: Array[String], bwords: Array[String]): Boolean = {
-    awords.toSet.subsetOf(bwords.toSet)
+    val aset = awords.filter(a => !a.equals("be")).toSet
+    val bset = bwords.filter(b => !b.equals("be")).toSet
+    aset.subsetOf(bset) || bset.subsetOf(aset)
   }
-  def subsumesOrSubsumedBy(that:TypedTuplesRecord) = {
+  def spanSubsumes(that: TypedTuplesRecord): Boolean = {
+    that.arg1Interval.subset(this.arg1Interval) && that.relInterval.subset(this.relInterval) && that.arg2Interval.subset(this.arg2Interval)
+  }
+
+
+  def subsumesOrSubsumedBy(that:TypedTuplesRecord):Boolean = {
+    if (this.spanSubsumes(that)) return true
+    if (that.spanSubsumes(this)) return true
     val thisString = this.normTupleString()
     val thatString = that.normTupleString()
-    thisString.contains(thatString) ||
-    thatString.contains(thisString) ||
-    setSubsumption(thisString.split(" "), thatString.split(" "))
+    thisString.contains(thatString) || thatString.contains(thisString) || setSubsumption(thisString.split(" "), thatString.split(" "))
+
   }
 }

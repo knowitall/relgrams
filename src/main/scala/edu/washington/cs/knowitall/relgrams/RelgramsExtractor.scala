@@ -263,7 +263,6 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     if (addedSeconds.contains(secondKey)) return
 
 
-
     val firstSentences = new mutable.HashSet[String]
     firstSentences ++= first.sentences
 

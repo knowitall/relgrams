@@ -21,6 +21,7 @@ object RelgramsLocalApp {
 
     var inputPath, outputPath = ""
     var maxWindow = 10
+    var maxSize = 5
     var equality = false
     var noequality = false
 
@@ -28,6 +29,7 @@ object RelgramsLocalApp {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
       opt("maxWindow", "max window size", {str => maxWindow = str.toInt})
+      opt("maxSize", "max size for id's arg head values etc.", {str => maxSize = str.toInt})
       opt("equality", "Argument equality tuples.", {str => equality = str.toBoolean})
       opt("noequality", "Count tuples without equality.", {str => noequality = str.toBoolean})
     }
@@ -37,7 +39,7 @@ object RelgramsLocalApp {
     assert(equality || noequality, "Both equality or noequality flags are false. One of them must be set true.")
 
     extractor = new RelgramsExtractor(maxWindow, equality, noequality)
-    counter = new RelgramsCounter
+    counter = new RelgramsCounter(maxSize)
     val tupleDocuments = loadTupleDocuments(inputPath)
     val extracts = extractRelgramCountsAndTuples(tupleDocuments, equality, noequality)
     val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1))
