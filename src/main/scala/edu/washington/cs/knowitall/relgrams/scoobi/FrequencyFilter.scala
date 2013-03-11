@@ -90,7 +90,7 @@ object FrequencyFilter extends ScoobiApp{
     })
     val dcounts = distributeCounts(counts, maxWindow)
     if (dcounts.max >= minFreq) {
-      Some(first + "\t" + second + "\t" + dcounts.mkString("\t") + "\t" + fids + "\t" + sids + "\t" + splits.slice(9, 12).mkString("\t").replaceAll( """_CSEP_""", ":").replaceAll("""_ESEP_""", ","))
+      Some(first + "\t" + second + "\t" + dcounts.mkString("\t") + "\t" + fids + "\t" + sids + "\t" + splits.slice(9, 13).mkString("\t").replaceAll( """_CSEP_""", ":").replaceAll("""_ESEP_""", ","))
     } else {
       None
     }

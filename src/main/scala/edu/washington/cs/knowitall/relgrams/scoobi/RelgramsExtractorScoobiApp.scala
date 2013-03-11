@@ -47,7 +47,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
   def exportRelgrams(relgramCounts: DList[RelgramCounts], outputPath: String){
     try{
       val relgramsPath = outputPath + File.separator + "relgrams"
-      persist(TextOutput.toTextFile(relgramCounts.map(x => x.prettyString), relgramsPath))
+      persist(TextOutput.toTextFile(relgramCounts.map(x => x.serialize), relgramsPath))
     }catch{
       case e:Exception => {
         println("Failed to persist reduced relgrams.")
