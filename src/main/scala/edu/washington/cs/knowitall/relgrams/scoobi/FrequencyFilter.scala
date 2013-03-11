@@ -72,7 +72,6 @@ object FrequencyFilter extends ScoobiApp{
     // Feb._CSEP_1
     // Delta_CSEP_1
     // September_CSEP_1
-
     val filterStrings = TextInput.fromTextFile(inputPath).flatMap(line => {
       distributeCountsAndFilter(line, maxWindow, minFreq)
     })
