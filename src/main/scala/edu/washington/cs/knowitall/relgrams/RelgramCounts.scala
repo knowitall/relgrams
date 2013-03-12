@@ -101,7 +101,7 @@ object RelationTuple{
     def fromWire(in: DataInput): RelationTuple = RelationTuple.fromSerializedString(in.readUTF()).getOrElse(dummyTuple)
   }
 
-
+  def fromArg1RelArg2(arg1:String, rel:String, arg2:String) = new RelationTuple(arg1, rel, arg2, Set[Int](), Set[String](),Set[String](),new mutable.HashMap[String, Int](), new mutable.HashMap[String, Int]())
 
 }
 
@@ -238,7 +238,14 @@ object RelgramCounts{
   }
 
   def serializeCounts(counts:Map[Int, Int]) = MapUtils.toIntIntCountsString(counts)
-  def deserializeCounts(countsString:String) = MapUtils.IntIntMutableMapfromCountsString(countsString)
+  def deserializeCounts(countsString:String) = try{
+    MapUtils.IntIntMutableMapfromCountsString(countsString)
+  }catch{
+    case e:Exception => {
+      println("Failed to extract IntInt map from string: " + countsString)
+      new mutable.HashMap[Int, Int]
+    }
+  }
 }
 
 case class RelgramCounts(relgram:Relgram, counts:scala.collection.mutable.Map[Int, Int], argCounts:ArgCounts){
@@ -260,7 +267,7 @@ case class RelgramCounts(relgram:Relgram, counts:scala.collection.mutable.Map[In
 
 object UndirRelgramCounts{
 
-  val sep = RelgramCounts.sep
+  val sep = "_URGC_"//RelgramCounts.sep
   def fromSerializedString(string:String) = {
     val splits = string.split(sep)
     RelgramCounts.fromSerializedString(splits(0)) match {
@@ -273,6 +280,7 @@ object UndirRelgramCounts{
   }
 
   def DummyUndirRelgramCounts = new UndirRelgramCounts(RelgramCounts.DummyRelgramCounts, Map[Int, Int]())
+  def serializeCounts(counts:Map[Int, Int]) = RelgramCounts.serializeCounts(counts)
   implicit def UndirRelgramCountsFmt = new WireFormat[UndirRelgramCounts]{
     override def toWire(x: UndirRelgramCounts, out: DataOutput) {out.writeUTF(x.serialize)}
     override def fromWire(in: DataInput): UndirRelgramCounts = UndirRelgramCounts.fromSerializedString(in.readUTF()).getOrElse(DummyUndirRelgramCounts)
@@ -281,7 +289,7 @@ object UndirRelgramCounts{
 
 }
 case class UndirRelgramCounts(rgc:RelgramCounts, bitermCounts:Map[Int, Int]){
-  import RelgramCounts._
+  import UndirRelgramCounts._
   def serialize:String = "%s%s%s".format(rgc.serialize, sep, serializeCounts(bitermCounts.toMap))
   override def toString:String = "%s\t%s".format(rgc.toString, MapUtils.toIntIntCountsString(bitermCounts.toMap))
 

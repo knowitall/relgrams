@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 
 import io.Source
 
-import edu.washington.cs.knowitall.relgrams.RelgramCounts
+import edu.washington.cs.knowitall.relgrams.{UndirRelgramCounts, RelgramCounts}
 import xml.Elem
 import dispatch.Http
 import org.apache.solr.client.solrj.impl.{XMLResponseParser, HttpSolrServer}
@@ -64,17 +64,18 @@ object ToSolrDocument {
   val http = new Http
   var solrServer:HttpSolrServer = null
   import dispatch._
-  def addToIndex(rgc:RelgramCounts) = {
+  def addToIndex(undirrgc:UndirRelgramCounts) = {
+    val rgc = undirrgc.rgc
+
     val farg1 = rgc.relgram.first.arg1
     val frel = rgc.relgram.first.rel
     val farg2 = rgc.relgram.first.arg2
     val sarg1 = rgc.relgram.second.arg1
     val srel = rgc.relgram.second.rel
     val sarg2 = rgc.relgram.second.arg2
-    val countsString = rgc.counts.keys.toSeq.sortBy(w => w).map(w => rgc.counts.getOrElse(w, 0))
-
+    //val countsString = rgc.counts.keys.toSeq.sortBy(w => w).map(w => rgc.counts.getOrElse(w, 0))
+    //val countsString = rgc.counts.keys.toSeq.sortBy(w => w).map(w => rgc.counts.getOrElse(w, 0))
     val solrDoc = new SolrInputDocument
-
     solrDoc.addField("id", id)
     solrDoc.addField("farg1", farg1)
     solrDoc.addField("frel", frel)
@@ -82,11 +83,10 @@ object ToSolrDocument {
     solrDoc.addField("sarg1", sarg1)
     solrDoc.addField("srel", srel)
     solrDoc.addField("sarg2", sarg2)
-    solrDoc.addField("counts", countsString)
-
+    //solrDoc.addField("counts", countsString)
+    solrDoc.addField("serialize", undirrgc.serialize)
     solrServer.add(solrDoc)
-    //val svc = url(solrBasePath) / "update" << Map("xml" -> doc.toString())
-    //http(svc OK as.Response(r => Source.fromInputStream(r.getResponseBodyAsStream()).getLines))
+
   }
 
 
@@ -98,8 +98,8 @@ object ToSolrDocument {
     solrServer = new HttpSolrServer(solrPath)
     solrServer.setParser(new XMLResponseParser())
     Source.fromFile(inputPath).getLines().foreach(line => {
-      RelgramCounts.fromSerializedString(line) match {
-        case Some(rgc:RelgramCounts) => {
+      UndirRelgramCounts.fromSerializedString(line) match {
+        case Some(rgc:UndirRelgramCounts) => {
           val response = addToIndex(rgc)
           println("response: " + response)
           id = id + 1

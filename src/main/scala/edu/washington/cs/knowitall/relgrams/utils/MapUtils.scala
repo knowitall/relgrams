@@ -15,6 +15,18 @@ import Numeric._
 import collection.{mutable, Map}
 
 object MapUtils {
+
+
+  def distributeCounts(counts: mutable.Map[Int, Int], maxWindow:Int) = {
+    var sum = 0
+    (0 until maxWindow).foreach(window => {
+      sum = sum + counts.getOrElse(window, 0)
+      counts += window -> sum
+    })
+
+  }
+
+
   def combine(amap: mutable.Map[Int, Int], bmap: mutable.Map[Int, Int]) = {
     var cmap = new mutable.HashMap[Int, Int]
     (amap.keys ++ bmap.keys).foreach(key => {

@@ -26,6 +26,12 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
+  def loadRelgramCountsAndDistribute(relgramsPath:String, maxWindow:Int) = {
+    loadRelgramCounts(relgramsPath).map(rgc => {
+      MapUtils.distributeCounts(rgc.counts, maxWindow)
+      rgc
+    })
+  }
   def loadRelgramCounts(relgramsPath:String) = {
     import RelgramCounts._
     TextInput.fromTextFile(relgramsPath)
@@ -77,16 +83,20 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
 
   def run() {
     var inputPath, outputPath = ""
+    var tuplesPath = ""
+    var maxWindow = 50
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
+      arg("tuplesPath", "hdfs tuples path", {str => tuplesPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
+      opt("maxWindow", "max window length.", {str => maxWindow = str.toInt})
     }
 
     if (!parser.parse(args)) return
 
     import RelgramCounts._
     import UndirRelgramCounts._
-    val relgramCounts = loadRelgramCounts(inputPath)
+    val relgramCounts = loadRelgramCountsAndDistribute(inputPath, maxWindow)
     val undirCounts = toUndirRelgramCounts(relgramCounts)
     export(undirCounts, outputPath)
   }
@@ -96,16 +106,18 @@ object RelgramMeasuresTest{
 
   def main(args:Array[String]){
     var inputPath, outputPath = ""
+    var maxWindow = 50
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
+      opt("maxWindow", "max window length.", {str => maxWindow = str.toInt})
     }
 
     if (!parser.parse(args)) return
 
     def exportLocal(undirCounts: immutable.Iterable[UndirRelgramCounts], outputPath: String){
       val writer = new PrintWriter(outputPath)
-      undirCounts.foreach(uc => writer.println(uc.toString))
+      undirCounts.foreach(uc => writer.println(uc.serialize))
       writer.close
     }
 
@@ -115,9 +127,17 @@ object RelgramMeasuresTest{
                               .getLines
                               .flatMap(line => RelgramCounts.fromSerializedString(line))//RelgramMeasuresScoobiApp.loadRelgramCounts(inputPath)
                               .toSeq
+                              .map(rgc => {
+                                MapUtils.distributeCounts(rgc.counts, maxWindow)
+                                rgc
+                              })
                               .groupBy(rgc => RelgramMeasuresScoobiApp.lexicallyOrderedKey(rgc.relgram))
                               .flatMap(grp => RelgramMeasuresScoobiApp.toUndirRelgramCounts(grp._2))
 
+    undirCounts.foreach(uc => UndirRelgramCounts.fromSerializedString(uc.serialize) match {
+      case Some(c:UndirRelgramCounts) =>
+      case None => "Failed to deserialize string: " + uc.serialize
+    })
     exportLocal(undirCounts, outputPath)
 
   }
