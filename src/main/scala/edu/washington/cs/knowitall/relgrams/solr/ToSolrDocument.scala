@@ -11,28 +11,27 @@ import org.slf4j.LoggerFactory
 
 import io.Source
 
-import edu.washington.cs.knowitall.relgrams.{RelationTuple, Relgram, RelgramCounts}
+import edu.washington.cs.knowitall.relgrams.RelgramCounts
 import xml.Elem
-import com.ning.http.client.{RequestBuilder, Request}
+import dispatch.Http
 
 object ToSolrDocument {
    val logger = LoggerFactory.getLogger(this.getClass)
 
   /**
-   * <add>
-<doc>
-  <field name="id">SOLR1000</field>
-  <field name="farg1">First arg1</field>
-  <field name="frel">eats</field>
-  <field name="farg2">second</field>
-  <field name="sarg1">Second arg1</field>
-  <field name="srel">also eats</field>
-  <field name="sarg2">second arg2</field>
-  <field name="count">10</field>
-</doc>
-</add>
-   * @param counts
-   * @return
+   *
+  <add>
+  <doc>
+    <field name="id">SOLR1000</field>
+    <field name="farg1">First arg1</field>
+    <field name="frel">eats</field>
+    <field name="farg2">second</field>
+    <field name="sarg1">Second arg1</field>
+    <field name="srel">also eats</field>
+    <field name="sarg2">second arg2</field>
+    <field name="count">10</field>
+  </doc>
+  </add>
    */
   var id = 0
   def toSolrXML(rgc: RelgramCounts) = {
@@ -58,19 +57,24 @@ object ToSolrDocument {
     </add>
   }
 
+  val http = new Http
   import dispatch._
-  def addToIndex(doc:Elem, solrPath:String) = {
-    val svc = url(solrPath) << Map("
+  def addToIndex(doc:Elem, solrBasePath:String) = {
+    val svc = url(solrBasePath) / "solr" / "update" << Map("xml", doc.toString())
+    http(svc OK as.Response(r => Source.fromInputStream(r.getResponseBodyAsStream()).getLines))
   }
 
 
   def main(args:Array[String]){
 
-    Source.fromFile(args(0)).getLines().foreach(line => {
+    val inputPath = args(0)
+    val solrPath = args(1)
+    Source.fromFile(inputPath).getLines().foreach(line => {
       RelgramCounts.fromSerializedString(line) match {
         case Some(rgc:RelgramCounts) => {
           val docXML: Elem = toSolrXML(rgc)
-          addToIndex(docXML, solrPath)
+          val response = addToIndex(docXML, solrPath)
+          println("response: " + response)
         }
         case None =>
       }
