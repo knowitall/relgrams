@@ -189,12 +189,10 @@
 
         <!-- solr -->
         <dependency>
-            <artifactId>solr-solrj</artifactId>
             <groupId>org.apache.solr</groupId>
-            <version>1.4.0</version>
-            <type>jar</type>
+            <artifactId>solr-solrj</artifactId>
+            <version>4.2.0</version>
         </dependency>
-
     </dependencies>
 
 
