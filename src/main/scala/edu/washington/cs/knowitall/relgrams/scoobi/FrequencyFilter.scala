@@ -17,6 +17,8 @@ import com.nicta.scoobi.Persist._
 
 import java.io.{PrintWriter, File}
 import io.Source
+import edu.washington.cs.knowitall.relgrams.{RelationTuple, Relgram, RelgramCounts}
+import collection.mutable
 
 object FrequencyFilter extends ScoobiApp{
 
@@ -24,12 +26,21 @@ object FrequencyFilter extends ScoobiApp{
 
 
   def distributeCounts(counts: Array[(Int, Int)], maxWindow:Int) = {
-    var sum = 0
+
     var countsMap = counts.map(wc => wc._1 -> wc._2).toMap
+    var sum = 0
     (0 until maxWindow).map(window => {
       sum = sum + countsMap.getOrElse(window, 0)
       sum
     })
+  }
+  def distributeCounts(counts: mutable.Map[Int, Int], maxWindow:Int) = {
+    var sum = 0
+    (0 until maxWindow).foreach(window => {
+      sum = sum + counts.getOrElse(window, 0)
+      counts += window -> sum
+    })
+
   }
 
   def export(strings: DList[String], outputPath: String){
@@ -45,6 +56,56 @@ object FrequencyFilter extends ScoobiApp{
     }
   }
 
+  def exportRelgramCounts(strings: DList[RelgramCounts], outputPath: String){
+    try{
+      val path = outputPath + File.separator + "tuples"
+      persist(TextOutput.toTextFile(strings, path))
+    }catch{
+      case e:Exception => {
+        println("Failed to persist reduced tuples.")
+        e.printStackTrace
+      }
+
+    }
+  }
+
+
+
+  def isGoodField(string:String) = {
+    val alphaDigitRe = """^[a-zA-Z0-9]+.*""".r
+    if(string == null)
+      false
+    else
+      alphaDigitRe.findFirstMatchIn(string) != None
+  }
+  def isGoodTuple(tuple:RelationTuple) = if(tuple == null)  false else isGoodField(tuple.arg1) && isGoodField(tuple.rel) && isGoodField(tuple.arg2)
+  def isGoodRelgram(relgram:Relgram) = isGoodTuple(relgram.first) && isGoodTuple(relgram.second)
+  def isGoodRgc(rgc:RelgramCounts) = isGoodRelgram(rgc.relgram)
+
+  def loadAndFilterRelgrams(inputPath:String, maxWindow:Int, minFreq:Int) = {
+    TextInput.fromTextFile(inputPath)
+             .flatMap(line => RelgramCounts.fromSerializedString(line))
+             .filter(rgc => isGoodRgc(rgc))
+             .map(rgc => {
+                  distributeCounts(rgc.counts, maxWindow)
+                  rgc
+             })
+             .filter(rgc => rgc.counts.values.max > minFreq)
+  }
+
+  def loadAndFilterRelgramsLocal(inputPath:String, maxWindow:Int, minFreq:Int) = {
+    Source.fromFile(inputPath).getLines
+          .flatMap(line => RelgramCounts.fromSerializedString(line))
+          .filter(rgc => isGoodRgc(rgc))
+          .map(rgc => {
+              distributeCounts(rgc.counts, maxWindow)
+              rgc
+          })
+          .filter(rgc => rgc.counts.values.max >= minFreq)
+  }
+
+
+
   def run() {
 
     var inputPath, outputPath = ""
@@ -58,6 +119,8 @@ object FrequencyFilter extends ScoobiApp{
     }
 
     if (!parser.parse(args)) return
+    val relgrams = loadAndFilterRelgrams(inputPath, maxWindow, minFreq)
+    exportRelgramCounts(relgrams, outputPath)
 
     // 10,000
     // ask
@@ -72,10 +135,10 @@ object FrequencyFilter extends ScoobiApp{
     // Feb._CSEP_1
     // Delta_CSEP_1
     // September_CSEP_1
-    val filterStrings = TextInput.fromTextFile(inputPath).flatMap(line => {
+    /**val filterStrings = TextInput.fromTextFile(inputPath).flatMap(line => {
       distributeCountsAndFilter(line, maxWindow, minFreq)
     })
-    export(filterStrings, outputPath)
+    export(filterStrings, outputPath)*/
   }
 
   def distributeCountsAndFilter(line: String, maxWindow: Int, minFreq: Int): Option[String] = {
@@ -105,12 +168,17 @@ object FrequencyFilterTest{
     val inputPath = args(0)
     val outputPath = args(1)
     val writer = new PrintWriter(outputPath)
-    Source.fromFile(inputPath).getLines().foreach(line => {
+    val relgramCounts = FrequencyFilter.loadAndFilterRelgramsLocal(inputPath, 50, 1)
+    relgramCounts.foreach(rgc => {
+      writer.println(rgc.serialize)
+    })
+    /**Source.fromFile(inputPath).getLines().foreach(line => {
       FrequencyFilter.distributeCountsAndFilter(line, 50, 3) match {
         case Some(string:String) => writer.println(string)
         case None =>
       }
     })
+      */
     writer.close
   }
 }
