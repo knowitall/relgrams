@@ -161,6 +161,27 @@
         </dependency>
 
 
+        <dependency>
+            <groupId>io.backchat.jerkson</groupId>
+            <artifactId>jerkson_2.9.2</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>net.databinder.dispatch</groupId>
+            <artifactId>core_2.9.2</artifactId>
+            <version>0.9.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.databinder</groupId>
+            <artifactId>unfiltered-filter_2.9.2</artifactId>
+            <version>0.6.4</version>
+        </dependency>
+        <dependency>
+            <groupId>net.databinder</groupId>
+            <artifactId>unfiltered-netty-server_2.9.2</artifactId>
+            <version>0.6.4</version>
+        </dependency>
+
 
     </dependencies>
 
