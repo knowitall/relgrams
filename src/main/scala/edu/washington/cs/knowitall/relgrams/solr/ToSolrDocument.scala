@@ -14,9 +14,10 @@ import io.Source
 import edu.washington.cs.knowitall.relgrams.RelgramCounts
 import xml.Elem
 import dispatch.Http
-import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer
-import org.apache.solr.client.solrj.SolrServer
+import org.apache.solr.client.solrj.impl.{XMLResponseParser, HttpSolrServer}
 import org.apache.solr.common.SolrInputDocument
+import org.apache.solr.client.solrj.SolrServer
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser
 
 object ToSolrDocument {
    val logger = LoggerFactory.getLogger(this.getClass)
@@ -61,7 +62,7 @@ object ToSolrDocument {
   }
 
   val http = new Http
-  var solrServer:SolrServer = null
+  var solrServer:HttpSolrServer = null
   import dispatch._
   def addToIndex(rgc:RelgramCounts) = {
     val farg1 = rgc.relgram.first.arg1
@@ -93,7 +94,9 @@ object ToSolrDocument {
 
     val inputPath = args(0)
     val solrPath = args(1)
-    solrServer = new CommonsHttpSolrServer(solrPath)
+
+    solrServer = new HttpSolrServer(solrPath)
+    solrServer.setParser(new XMLResponseParser())
     Source.fromFile(inputPath).getLines().foreach(line => {
       RelgramCounts.fromSerializedString(line) match {
         case Some(rgc:RelgramCounts) => {

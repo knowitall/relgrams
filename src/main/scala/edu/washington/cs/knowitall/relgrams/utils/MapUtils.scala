@@ -15,6 +15,13 @@ import Numeric._
 import collection.{mutable, Map}
 
 object MapUtils {
+  def combine(amap: mutable.Map[Int, Int], bmap: mutable.Map[Int, Int]) = {
+    var cmap = new mutable.HashMap[Int, Int]
+    (amap.keys ++ bmap.keys).foreach(key => {
+      cmap += key -> (amap.getOrElse(key, 0) + bmap.getOrElse(key, 0))
+    })
+    cmap
+  }
 
 
   val esep = "_ESEP_"

@@ -208,21 +208,26 @@ object RelgramCounts{
   def fromSerializedString(serializedString:String):Option[RelgramCounts] = {
     val splits = serializedString.split(sep)
     if (splits.size > 2){
-      val relgramOption = Relgram.fromSerializedString(splits(0))
-      val counts = deserializeCounts(splits(1))
-      val argCountsOption = ArgCounts.fromSerializedString(splits(2))
-      (relgramOption, argCountsOption) match {
-        case (Some(relgram:Relgram), Some(argCounts:ArgCounts)) => Some(new RelgramCounts(relgram, counts , argCounts))
-        case _ => {
-          println("Relgram: " + relgramOption + " and ArgCountOption: " + argCountsOption)
-          None
-        }
-      }
+      fromSerializedStringSplits(splits)
     }else{
       println("Failed to serialize from string: " + serializedString)
       None
     }
   }
+
+  def fromSerializedStringSplits(splits: Array[String]): Option[RelgramCounts] = {
+    val relgramOption = Relgram.fromSerializedString(splits(0))
+    val counts = deserializeCounts(splits(1))
+    val argCountsOption = ArgCounts.fromSerializedString(splits(2))
+    (relgramOption, argCountsOption) match {
+      case (Some(relgram: Relgram), Some(argCounts: ArgCounts)) => Some(new RelgramCounts(relgram, counts, argCounts))
+      case _ => {
+        println("Relgram: " + relgramOption + " and ArgCountOption: " + argCountsOption)
+        None
+      }
+    }
+  }
+
   def serializeCounts(counts:Map[Int, Int]) = MapUtils.toIntIntCountsString(counts)
   def deserializeCounts(countsString:String) = MapUtils.IntIntMutableMapfromCountsString(countsString)
 }
@@ -241,5 +246,34 @@ case class RelgramCounts(relgram:Relgram, counts:scala.collection.mutable.Map[In
   override def toString:String = "%s\t%s\t%s".format(relgram.toString,
                                                      MapUtils.toIntIntCountsString(counts.toMap),
                                                      argCounts.toString)
+
+}
+
+object UndirRelgramCounts{
+
+  val sep = RelgramCounts.sep
+  def fromSerializedString(string:String) = {
+    val splits = string.split(sep)
+    RelgramCounts.fromSerializedString(splits(0)) match {
+      case Some(rgc:RelgramCounts) => {
+        val bitermCounts = RelgramCounts.deserializeCounts(splits(1))
+        Some(new UndirRelgramCounts(rgc, bitermCounts))
+      }
+      case None => None
+    }
+  }
+
+  def DummyUndirRelgramCounts = new UndirRelgramCounts(RelgramCounts.DummyRelgramCounts, Map[Int, Int]())
+  implicit def UndirRelgramCountsFmt = new WireFormat[UndirRelgramCounts]{
+    override def toWire(x: UndirRelgramCounts, out: DataOutput) {out.writeUTF(x.serialize)}
+    override def fromWire(in: DataInput): UndirRelgramCounts = UndirRelgramCounts.fromSerializedString(in.readUTF()).getOrElse(DummyUndirRelgramCounts)
+  }
+
+
+}
+case class UndirRelgramCounts(rgc:RelgramCounts, bitermCounts:Map[Int, Int]){
+  import RelgramCounts._
+  def serialize:String = "%s%s%s".format(rgc.serialize, sep, serializeCounts(bitermCounts.toMap))
+  override def toString:String = "%s\t%s".format(rgc.toString, MapUtils.toIntIntCountsString(bitermCounts.toMap))
 
 }
