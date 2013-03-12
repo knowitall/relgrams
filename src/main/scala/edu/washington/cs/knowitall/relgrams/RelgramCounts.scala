@@ -201,7 +201,16 @@ object RelgramCounts{
   import RelationTuple._
   val DummyRelgramCounts:RelgramCounts = new RelgramCounts(new Relgram(dummyTuple, dummyTuple), new mutable.HashMap[Int, Int](), ArgCounts.newInstance)
   implicit def RelgramCountsFmt = new WireFormat[RelgramCounts]{
-    override def toWire(x: RelgramCounts, out: DataOutput) {out.writeUTF(x.serialize)}
+    override def toWire(x: RelgramCounts, out: DataOutput) {
+      try{
+        out.writeUTF(x.serialize)
+      }catch{
+        case e:Exception => {
+          println("Failed to persist relgramcounts of size: "  + x.serialize.length)
+          out.writeUTF(DummyRelgramCounts.serialize)
+        }
+      }
+    }
     override def fromWire(in: DataInput): RelgramCounts = RelgramCounts.fromSerializedString(in.readUTF()).getOrElse(DummyRelgramCounts)//.getOrElse(RelgramCounts.DummyRelgramCounts)
   }
   val sep = "_RGC_SEP_"
