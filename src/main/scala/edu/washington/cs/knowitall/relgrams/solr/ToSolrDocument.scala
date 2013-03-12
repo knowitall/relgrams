@@ -14,6 +14,9 @@ import io.Source
 import edu.washington.cs.knowitall.relgrams.RelgramCounts
 import xml.Elem
 import dispatch.Http
+import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer
+import org.apache.solr.client.solrj.SolrServer
+import org.apache.solr.common.SolrInputDocument
 
 object ToSolrDocument {
    val logger = LoggerFactory.getLogger(this.getClass)
@@ -58,10 +61,31 @@ object ToSolrDocument {
   }
 
   val http = new Http
+  var solrServer:SolrServer = null
   import dispatch._
-  def addToIndex(doc:Elem, solrBasePath:String) = {
-    val svc = url(solrBasePath) / "solr" / "update" << Map("xml", doc.toString())
-    http(svc OK as.Response(r => Source.fromInputStream(r.getResponseBodyAsStream()).getLines))
+  def addToIndex(rgc:RelgramCounts) = {
+    val farg1 = rgc.relgram.first.arg1
+    val frel = rgc.relgram.first.rel
+    val farg2 = rgc.relgram.first.arg2
+    val sarg1 = rgc.relgram.second.arg1
+    val srel = rgc.relgram.second.rel
+    val sarg2 = rgc.relgram.second.arg2
+    val countsString = rgc.counts.keys.toSeq.sortBy(w => w).map(w => rgc.counts.getOrElse(w, 0))
+
+    val solrDoc = new SolrInputDocument
+
+    solrDoc.addField("id", id)
+    solrDoc.addField("farg1", farg1)
+    solrDoc.addField("frel", frel)
+    solrDoc.addField("farg2", farg2)
+    solrDoc.addField("sarg1", sarg1)
+    solrDoc.addField("srel", srel)
+    solrDoc.addField("sarg2", sarg2)
+    solrDoc.addField("counts", countsString)
+
+    solrServer.add(solrDoc)
+    //val svc = url(solrBasePath) / "update" << Map("xml" -> doc.toString())
+    //http(svc OK as.Response(r => Source.fromInputStream(r.getResponseBodyAsStream()).getLines))
   }
 
 
@@ -69,16 +93,19 @@ object ToSolrDocument {
 
     val inputPath = args(0)
     val solrPath = args(1)
+    solrServer = new CommonsHttpSolrServer(solrPath)
     Source.fromFile(inputPath).getLines().foreach(line => {
       RelgramCounts.fromSerializedString(line) match {
         case Some(rgc:RelgramCounts) => {
-          val docXML: Elem = toSolrXML(rgc)
-          val response = addToIndex(docXML, solrPath)
+          val response = addToIndex(rgc)
           println("response: " + response)
+          id = id + 1
         }
         case None =>
       }
     })
+    solrServer.commit()
+
 
   }
 }
