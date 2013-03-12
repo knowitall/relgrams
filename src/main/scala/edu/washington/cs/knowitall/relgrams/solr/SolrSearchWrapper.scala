@@ -13,7 +13,8 @@ import org.apache.solr.client.solrj.{SolrQuery, SolrServer}
 import org.apache.solr.client.solrj.impl.{XMLResponseParser, HttpSolrServer}
 
 import scala.collection.JavaConversions._
-import edu.washington.cs.knowitall.relgrams.{RelationTuple, UndirRelgramCounts}
+import edu.washington.cs.knowitall.relgrams.{Measures, RelationTuple}
+
 import javax.xml.stream.XMLResolver
 
 class SolrSearchWrapper(solrBaseUrl:String) {
@@ -45,16 +46,16 @@ class SolrSearchWrapper(solrBaseUrl:String) {
   }
 
   import dispatch._
-  def search(query:RelgramsQuery): Seq[UndirRelgramCounts] = {
+  def search(query:RelgramsQuery): Seq[Measures] = {
     toSolrQuery(query) match {
       case Some(solrQuery:SolrQuery) => {
         logger.info("RelgramsQuery: " + query.toHTMLString)
         logger.info("SolrQuery: " + solrQuery)
         val results = server.query(solrQuery)
         logger.info("Query: %s returned %d solr documents.".format(solrQuery.toString, results.getResults.size))
-        results.getResults.flatMap(result => UndirRelgramCounts.fromSerializedString(result.getFirstValue("serialize").toString))
+        results.getResults.flatMap(result => Measures.fromSerializedString(result.getFirstValue("serialize").toString))
       }
-      case None => Seq[UndirRelgramCounts]()
+      case None => Seq[Measures]()
     }
 
 

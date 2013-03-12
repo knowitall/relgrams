@@ -113,7 +113,7 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
     import com.nicta.scoobi.lib.Relational._
     val groups = coGroup(groupedRGCs, groupedTCs)
     val measures = groups.flatMap(group => {
-      val firstCount = group._2._2.max
+      val firstCount = group._2._2.headOption.getOrElse(0)
       group._2._1.map(urgc => {
         (tupleKey(urgc.rgc.relgram.second), new Measures(urgc, firstCount, 0))
       })
@@ -121,7 +121,7 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
 
     val mgroups = coGroup(measures,groupedTCs)
     mgroups.flatMap(group => {
-      val secondCount = group._2._2.max
+      val secondCount = group._2._2.headOption.getOrElse(0)
       group._2._1.map(measure => {
         new Measures(measure.urgc, measure.firstCounts, secondCount)
       })
