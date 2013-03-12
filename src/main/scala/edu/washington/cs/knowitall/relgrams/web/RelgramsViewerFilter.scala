@@ -12,7 +12,7 @@ import unfiltered.filter.Plan
 import unfiltered.request.{HttpRequest, GET, Path, Method}
 
 import unfiltered.response.ResponseString
-import edu.washington.cs.knowitall.relgrams.{Relgram, RelationTuple, UndirRelgramCounts}
+import edu.washington.cs.knowitall.relgrams.{Measures, Relgram, RelationTuple, UndirRelgramCounts}
 import javax.servlet.http.HttpServletRequest
 
 import unfiltered.response.ResponseString
@@ -197,7 +197,7 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   def wrapHtml(content:String) = "<html>" + content + "</html>"
 
-  def search(query: RelgramsQuery):(String, Seq[UndirRelgramCounts]) = (query.toHTMLString, solrManager.search(query))
+  def search(query: RelgramsQuery):(String, Seq[Measures]) = (query.toHTMLString, solrManager.search(query))
 
   val tableTags = "<table border=1>\n%s\n</table>\n"
   def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("Measure", "#(F,S)", "#(S,F)", "#(F,*)", "#(S,*)")
@@ -206,7 +206,7 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
   }
 
   val rowTags = "<tr>%s<tr>\n"
-  def toResultsRow(query:RelgramsQuery, undirRGC:UndirRelgramCounts):String = rowTags.format(resultsRowContent(query, undirRGC))
+  def toResultsRow(query:RelgramsQuery, measures:Measures):String = rowTags.format(resultsRowContent(query, measures))
 
   def fromTabToColonFmt(text:String) = {
     "(%s)".format(text.replaceAll("\t", "; "))
@@ -235,7 +235,8 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
     val splits = toDisplayText(text).split("\t")
     """(<a href="#" TITLE="%s">%s</a>;%s;<a href="#" TITLE="%s">%s</a>)""".format(arg1TopArgs, splits(0), splits(1), arg2TopArgs, splits(2))
   }
-  def resultsRowContent(query:RelgramsQuery, undirRGC:UndirRelgramCounts):String = {
+  def resultsRowContent(query:RelgramsQuery, measures:Measures):String = {
+    val undirRGC = measures.urgc
     val rgc = undirRGC.rgc
     val measureValue = undirRGC.bitermCounts.values.max//(query.measureIndex)//(query.measure, query.measureIndex)
     "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>".format(relationWithRelArgs(rgc.relgram.first),
@@ -247,9 +248,9 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
     //mrvg.relviewGrams.firstSecondCounts.get(9))
   }
 
-  def renderSearchResults(query:RelgramsQuery, results:(String, Seq[UndirRelgramCounts])) = {
+  def renderSearchResults(query:RelgramsQuery, results:(String, Seq[Measures])) = {
     wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n" +
-                         results._2.map(undirRGC => toResultsRow(query, undirRGC)).mkString("\n"))
+                         results._2.map(measure => toResultsRow(query, measure)).mkString("\n"))
   }
 
 
@@ -265,7 +266,7 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
 
     case req @ GET(Path("/relgrams")) => {
       val relgramsQuery = ReqHelper.getRelgramsQuery(req)
-      val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[UndirRelgramCounts]())
+      val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[Measures]())
 
       ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery) + "<br/><br/>"
         + renderSearchResults(relgramsQuery, results)))//"" + "Arg1: " + relgramsQuery.toHTMLString) )
