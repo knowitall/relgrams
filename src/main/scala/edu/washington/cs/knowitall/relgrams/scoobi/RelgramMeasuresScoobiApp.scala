@@ -17,7 +17,7 @@ import com.nicta.scoobi.Persist._
 import scopt.mutable.OptionParser
 import io.Source
 import collection.immutable
-import java.io.PrintWriter
+import java.io.{File, PrintWriter}
 import scopt.mutable.OptionParser
 import scala.Some
 
@@ -73,7 +73,8 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
   def exportUndirCounts(undirCounts: DList[UndirRelgramCounts], outputPath: String){
     import UndirRelgramCounts._
     try{
-      persist(TextOutput.toTextFile(undirCounts.map(x => x.serialize), outputPath))
+      val undirPath = outputPath + File.separator + "undircounts"
+      persist(TextOutput.toTextFile(undirCounts.map(x => x.serialize), undirPath))
     }catch{
       case e:Exception => {
         println("Failed to persist undir counts to path: " + outputPath)
@@ -86,7 +87,8 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
   def exportMeasures(measures: DList[Measures], outputPath: String){
     import Measures._
     try{
-      persist(TextOutput.toTextFile(measures.map(x => x.serialize), outputPath))
+      val measuresPath = outputPath + File.separator + "measures"
+      persist(TextOutput.toTextFile(measures.map(x => x.serialize), measuresPath))
     }catch{
       case e:Exception => {
         println("Failed to persist measures sto path: " + outputPath)
