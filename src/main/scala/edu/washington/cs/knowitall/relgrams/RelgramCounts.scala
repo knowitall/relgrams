@@ -294,3 +294,29 @@ case class UndirRelgramCounts(rgc:RelgramCounts, bitermCounts:Map[Int, Int]){
   override def toString:String = "%s\t%s".format(rgc.toString, MapUtils.toIntIntCountsString(bitermCounts.toMap))
 
 }
+
+object Measures{
+  val sep = "_MSEP_"
+  def fromSerializedString(string:String) = {
+    val splits = string.split(sep)
+    UndirRelgramCounts.fromSerializedString(splits(0)) match {
+      case Some(urgc:UndirRelgramCounts) => {
+        val firstCounts = if (splits.size > 1) splits(1).toInt else 0
+        val secondCounts = if (splits.size > 2) splits(2).toInt else 0
+        Some(new Measures(urgc, firstCounts, secondCounts))
+      }
+      case _ => None
+    }
+  }
+  def DummyMeasures = new Measures(UndirRelgramCounts.DummyUndirRelgramCounts, 0, 0)
+  implicit def MeasuresFmt = new WireFormat[Measures]{
+    override def toWire(x: Measures, out: DataOutput) {out.writeUTF(x.serialize)}
+    override def fromWire(in: DataInput): Measures = Measures.fromSerializedString(in.readUTF()).getOrElse(DummyMeasures)
+  }
+
+}
+case class Measures(urgc:UndirRelgramCounts, firstCounts:Int, secondCounts:Int){
+  import Measures._
+  def serialize:String = "%s%s%s%s%s".format(urgc.serialize, sep, firstCounts, sep, secondCounts)
+  override def toString:String = "%s\t%s\t%s".format(urgc.toString, firstCounts, secondCounts)
+}

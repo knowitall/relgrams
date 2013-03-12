@@ -9,9 +9,8 @@ package edu.washington.cs.knowitall.relgrams.scoobi
  */
 import org.slf4j.LoggerFactory
 import com.nicta.scoobi.application.ScoobiApp
-import scopt.mutable.OptionParser
 import com.nicta.scoobi.io.text.{TextOutput, TextInput}
-import edu.washington.cs.knowitall.relgrams.{UndirRelgramCounts, Relgram, RelgramCounts}
+import edu.washington.cs.knowitall.relgrams._
 import com.nicta.scoobi.core.DList
 import edu.washington.cs.knowitall.relgrams.utils.MapUtils
 import com.nicta.scoobi.Persist._
@@ -19,6 +18,9 @@ import scopt.mutable.OptionParser
 import io.Source
 import collection.immutable
 import java.io.PrintWriter
+import scopt.mutable.OptionParser
+import scala.Some
+
 
 object RelgramMeasuresScoobiApp extends ScoobiApp {
 
@@ -68,7 +70,7 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
                  .flatMap(grp => toUndirRelgramCounts(grp._2))
   }
 
-  def export(undirCounts: DList[UndirRelgramCounts], outputPath: String){
+  def exportUndirCounts(undirCounts: DList[UndirRelgramCounts], outputPath: String){
     import UndirRelgramCounts._
     try{
       persist(TextOutput.toTextFile(undirCounts.map(x => x.serialize), outputPath))
@@ -79,6 +81,50 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
       }
 
     }
+  }
+
+  def exportMeasures(measures: DList[Measures], outputPath: String){
+    import Measures._
+    try{
+      persist(TextOutput.toTextFile(measures.map(x => x.serialize), outputPath))
+    }catch{
+      case e:Exception => {
+        println("Failed to persist measures sto path: " + outputPath)
+        e.printStackTrace
+      }
+
+    }
+  }
+
+  def loadRelationTupleCounts(tuplesPath:String) = TextInput.fromTextFile(tuplesPath)
+                                                            .flatMap(line => RelationTupleCounts.fromSerializedString(line))
+
+
+  def tupleKey(tuple:RelationTuple) = tuple.arg1 + "\t" + tuple.rel + "\t" + tuple.arg2
+
+  def computeMeasures(relgramCounts:DList[UndirRelgramCounts], tupleCounts:DList[RelationTupleCounts]) = {
+    import RelationTupleCounts._
+    import RelgramCounts._
+    import Measures._
+    val groupedRGCs =relgramCounts.map(urgc => (tupleKey(urgc.rgc.relgram.first), urgc))
+    val groupedTCs = tupleCounts.map(tc => (tupleKey(tc.tuple), tc.count))
+    import com.nicta.scoobi.lib.Relational._
+    val groups = coGroup(groupedRGCs, groupedTCs)
+    val measures = groups.flatMap(group => {
+      val firstCount = group._2._2.max
+      group._2._1.map(urgc => {
+        (tupleKey(urgc.rgc.relgram.second), new Measures(urgc, firstCount, 0))
+      })
+    })
+
+    val mgroups = coGroup(measures,groupedTCs)
+    mgroups.flatMap(group => {
+      val secondCount = group._2._2.max
+      group._2._1.map(measure => {
+        new Measures(measure.urgc, measure.firstCounts, secondCount)
+      })
+    })
+
   }
 
   def run() {
@@ -96,9 +142,14 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
 
     import RelgramCounts._
     import UndirRelgramCounts._
+    import Measures._
+    import RelationTupleCounts._
     val relgramCounts = loadRelgramCountsAndDistribute(inputPath, maxWindow)
     val undirCounts = toUndirRelgramCounts(relgramCounts)
-    export(undirCounts, outputPath)
+    val tupleCounts = loadRelationTupleCounts(tuplesPath)
+    val measures = computeMeasures(undirCounts, tupleCounts)
+    exportMeasures(measures, outputPath)
+    exportUndirCounts(undirCounts, outputPath)
   }
 }
 
@@ -123,6 +174,7 @@ object RelgramMeasuresTest{
 
     import RelgramCounts._
     import UndirRelgramCounts._
+    import Measures._
     val undirCounts = Source.fromFile(inputPath)
                               .getLines
                               .flatMap(line => RelgramCounts.fromSerializedString(line))//RelgramMeasuresScoobiApp.loadRelgramCounts(inputPath)
@@ -138,6 +190,7 @@ object RelgramMeasuresTest{
       case Some(c:UndirRelgramCounts) =>
       case None => "Failed to deserialize string: " + uc.serialize
     })
+
     exportLocal(undirCounts, outputPath)
 
   }
