@@ -200,7 +200,9 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
   def search(query: RelgramsQuery):(String, Seq[Measures]) = (query.toHTMLString, solrManager.search(query))
 
   val tableTags = "<table border=1>\n%s\n</table>\n"
-  def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("Measure", "#(F,S)", "#(S,F)", "#(F,*)", "#(S,*)")
+  //def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("Measure", "#(F,S)", "#(S,F)", "#(F,*)", "#(S,*)")
+
+  def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("#(F,S)", "#(S,F)", "#F", "#S")
   def wrapResultsTableTags(content:String) = {
     tableTags.format(content)
   }
@@ -238,12 +240,14 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
   def resultsRowContent(query:RelgramsQuery, measures:Measures):String = {
     val undirRGC = measures.urgc
     val rgc = undirRGC.rgc
-    val measureValue = undirRGC.bitermCounts.values.max//(query.measureIndex)//(query.measure, query.measureIndex)
-    "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>".format(relationWithRelArgs(rgc.relgram.first),
+    //val measureValue = undirRGC.bitermCounts.values.max//(query.measureIndex)//(query.measure, query.measureIndex)
+    val fscount = undirRGC.rgc.counts.values.max
+    val bitermCount = undirRGC.bitermCounts.values.max
+    "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>".format(relationWithRelArgs(rgc.relgram.first),
       relationWithRelArgs(rgc.relgram.second),
-      measureValue,
-      rgc.counts(query.measureIndex),
-      (undirRGC.bitermCounts(query.measureIndex)-rgc.counts(query.measureIndex)),"", "")
+      fscount,
+      (bitermCount-fscount),
+      measures.firstCounts, measures.secondCounts)
 
     //mrvg.relviewGrams.firstSecondCounts.get(9))
   }

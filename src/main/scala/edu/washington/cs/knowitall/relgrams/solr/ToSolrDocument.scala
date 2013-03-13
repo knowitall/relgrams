@@ -84,6 +84,7 @@ object ToSolrDocument {
     solrDoc.addField("srel", srel)
     solrDoc.addField("sarg2", sarg2)
     //solrDoc.addField("counts", countsString)
+    //println("Counts: " + measures.firstCounts + " and " + measures.secondCounts)
     solrDoc.addField("serialize", measures.serialize)
     solrServer.add(solrDoc)
 
