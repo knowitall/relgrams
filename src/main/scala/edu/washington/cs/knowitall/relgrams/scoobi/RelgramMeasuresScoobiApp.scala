@@ -143,7 +143,7 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
       arg("outputPath", "hdfs output path", { str => outputPath = str })
       opt("maxWindow", "max window length.", {str => maxWindow = str.toInt})
       opt("minFreq", "min freq for undirected cooccurrence", {str => minFreq = str.toInt})
-      opt("minDirFreq", "min freq for undirected cooccurrence", {str => minFreq = str.toInt})
+      opt("minDirFreq", "min freq for undirected cooccurrence", {str => minDirFreq = str.toInt})
     }
 
     if (!parser.parse(args)) return
