@@ -12,11 +12,12 @@ import unfiltered.filter.Plan
 import unfiltered.request.{HttpRequest, GET, Path, Method}
 
 import unfiltered.response.ResponseString
-import edu.washington.cs.knowitall.relgrams.{Measures, Relgram, RelationTuple, UndirRelgramCounts}
+import edu.washington.cs.knowitall.relgrams._
 import javax.servlet.http.HttpServletRequest
 
 import unfiltered.response.ResponseString
 import edu.washington.cs.knowitall.relgrams.solr.SolrSearchWrapper
+import unfiltered.response.ResponseString
 
 
 object MeasureName extends Enumeration("bigram", "biterm", "psgf", "pfgs", "psgf_undir", "pmi", "npmi", "pmi_undir", "npmi_undir",
@@ -197,18 +198,18 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   def wrapHtml(content:String) = "<html>" + content + "</html>"
 
-  def search(query: RelgramsQuery):(String, Seq[Measures]) = (query.toHTMLString, solrManager.search(query))
+  def search(query: RelgramsQuery):(String, Seq[(Measures, AffinityMeasures)]) = (query.toHTMLString, solrManager.search(query))
 
   val tableTags = "<table border=1>\n%s\n</table>\n"
   //def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("Measure", "#(F,S)", "#(S,F)", "#(F,*)", "#(S,*)")
 
-  def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("#(F,S)", "#(S,F)", "#F", "#S")
+  def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("P(S|F)", "#(F,S)", "#(S,F)", "#F", "#S")
   def wrapResultsTableTags(content:String) = {
     tableTags.format(content)
   }
 
   val rowTags = "<tr>%s<tr>\n"
-  def toResultsRow(query:RelgramsQuery, measures:Measures):String = rowTags.format(resultsRowContent(query, measures))
+  def toResultsRow(query:RelgramsQuery, measures:Measures, affinities:AffinityMeasures):String = rowTags.format(resultsRowContent(query, measures, affinities))
 
   def fromTabToColonFmt(text:String) = {
     "(%s)".format(text.replaceAll("\t", "; "))
@@ -237,14 +238,15 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
     val splits = toDisplayText(text).split("\t")
     """(<a href="#" TITLE="%s">%s</a>;%s;<a href="#" TITLE="%s">%s</a>)""".format(arg1TopArgs, splits(0), splits(1), arg2TopArgs, splits(2))
   }
-  def resultsRowContent(query:RelgramsQuery, measures:Measures):String = {
+  def resultsRowContent(query:RelgramsQuery, measures:Measures, affinities:AffinityMeasures):String = {
     val undirRGC = measures.urgc
     val rgc = undirRGC.rgc
     //val measureValue = undirRGC.bitermCounts.values.max//(query.measureIndex)//(query.measure, query.measureIndex)
     val fscount = undirRGC.rgc.counts.values.max
     val bitermCount = undirRGC.bitermCounts.values.max
-    "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>".format(relationWithRelArgs(rgc.relgram.first),
+    "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>".format(relationWithRelArgs(rgc.relgram.first),
       relationWithRelArgs(rgc.relgram.second),
+      affinities.firstUndir.conditional,
       fscount,
       (bitermCount-fscount),
       measures.firstCounts, measures.secondCounts)
@@ -252,9 +254,9 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
     //mrvg.relviewGrams.firstSecondCounts.get(9))
   }
 
-  def renderSearchResults(query:RelgramsQuery, results:(String, Seq[Measures])) = {
+  def renderSearchResults(query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
     wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n" +
-                         results._2.map(measure => toResultsRow(query, measure)).mkString("\n"))
+                         results._2.map(ma => toResultsRow(query, ma._1, ma._2)).mkString("\n"))
   }
 
 
@@ -270,7 +272,7 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
 
     case req @ GET(Path("/relgrams")) => {
       val relgramsQuery = ReqHelper.getRelgramsQuery(req)
-      val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[Measures]())
+      val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
 
       ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery) + "<br/><br/>"
         + renderSearchResults(relgramsQuery, results)))//"" + "Arg1: " + relgramsQuery.toHTMLString) )

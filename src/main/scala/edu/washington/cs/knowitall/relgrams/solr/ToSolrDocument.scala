@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 
 import io.Source
 
-import edu.washington.cs.knowitall.relgrams.{Measures, UndirRelgramCounts, RelgramCounts}
+import edu.washington.cs.knowitall.relgrams.{AffinityMeasures, Measures, UndirRelgramCounts, RelgramCounts}
 import xml.Elem
 import dispatch.Http
 import org.apache.solr.client.solrj.impl.{XMLResponseParser, HttpSolrServer}
@@ -64,7 +64,7 @@ object ToSolrDocument {
   val http = new Http
   var solrServer:HttpSolrServer = null
   import dispatch._
-  def addToIndex(measures:Measures) = {
+  def addToIndex(measures:Measures, affinities:AffinityMeasures) = {
     val undirrgc = measures.urgc
     val rgc = undirrgc.rgc
     val farg1 = rgc.relgram.first.arg1
@@ -86,6 +86,7 @@ object ToSolrDocument {
     //solrDoc.addField("counts", countsString)
     //println("Counts: " + measures.firstCounts + " and " + measures.secondCounts)
     solrDoc.addField("serialize", measures.serialize)
+    solrDoc.addField("affinities", affinities.serialize)
     solrServer.add(solrDoc)
 
   }
@@ -95,13 +96,16 @@ object ToSolrDocument {
 
     val inputPath = args(0)
     val solrPath = args(1)
+    val windowAlpha = args(2).toDouble
+    val smoothingDelta = args(3).toDouble
 
     solrServer = new HttpSolrServer(solrPath)
     solrServer.setParser(new XMLResponseParser())
     Source.fromFile(inputPath).getLines().foreach(line => {
       Measures.fromSerializedString(line) match {
         case Some(measures:Measures) => {
-          val response = addToIndex(measures)
+          val affinities =AffinityMeasures.fromMeasures(measures, windowAlpha, smoothingDelta)
+          val response = addToIndex(measures, affinities)
           println("response: " + response)
           id = id + 1
         }

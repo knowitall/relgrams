@@ -3,7 +3,7 @@ package edu.washington.cs.knowitall.relgrams
 import collection.{mutable, Map, Set}
 import com.nicta.scoobi.core.WireFormat
 import java.io.{DataInput, DataOutput}
-import utils.MapUtils
+import utils.{Pairable, MapUtils}
 import util.matching.Regex
 import util.matching.Regex.Match
 
@@ -14,10 +14,6 @@ import util.matching.Regex.Match
  * Time: 9:10 PM
  * To change this template use File | Settings | File Templates.
  */
-
-
-import edu.washington.cs.knowitall.relgrams.utils.MapUtils
-
 
 
 object RelationTupleCounts{
@@ -315,8 +311,100 @@ object Measures{
   }
 
 }
+object AffinityMeasures{
+
+  val sep = "_affsep_"
+  def fromSerializedString(string:String) = {
+    val splits = string.split(sep)
+    if (splits.size == 4){
+      (Conditionals.fromSerializedString(splits(0)),
+        Conditionals.fromSerializedString(splits(1)),
+        Conditionals.fromSerializedString(splits(2)),
+        Conditionals.fromSerializedString(splits(3))) match {
+        case (Some(fud:Conditionals), Some(fd:Conditionals), Some(sud:Conditionals), Some(sd:Conditionals)) => {
+          Some(new AffinityMeasures(fud, fd, sud, sd))
+        }
+        case _ => None
+      }
+    }else{
+      None
+    }
+  }
+
+  def fromMeasures(measures:Measures, windowAlpha:Double, smoothingDelta:Double) = {
+    val bitermCounts = measures.urgc.bitermCounts
+    val bigramCounts = measures.urgc.rgc.counts
+    val firstCounts = measures.firstCounts
+    val secondCounts = measures.secondCounts
+
+
+    val firstUndirConditionals = conditionals(bitermCounts, smoothingDelta, firstCounts)
+    val firstDirConditionals = conditionals(bigramCounts, smoothingDelta, firstCounts)
+    val firstUndirConditional = combine(firstUndirConditionals, windowAlpha)
+    val firstDirConditional = combine(firstDirConditionals, windowAlpha)
+    val firstDir = new Conditionals(firstDirConditionals, firstDirConditional)
+    val firstUndir = new Conditionals(firstUndirConditionals, firstUndirConditional)
+
+    val secondUndirConditionals = conditionals(bitermCounts, smoothingDelta, secondCounts)
+    val secondDirConditionals = conditionals(bigramCounts, smoothingDelta, secondCounts)
+    val secondUndirConditional = combine(secondUndirConditionals, windowAlpha)
+    val secondDirConditional = combine(secondDirConditionals, windowAlpha)
+
+    val secondDir = new Conditionals(secondDirConditionals, secondDirConditional)
+    val secondUndir = new Conditionals(secondUndirConditionals, secondUndirConditional)
+
+    new AffinityMeasures(firstUndir, firstDir, secondUndir, secondDir)
+  }
+
+
+  def weightedAverage(weights:Seq[Double], values:Seq[Double]) = {
+    require(weights.size == values.size, "Weights and values size must be the same. Actual weights:%d, values:%d".format(weights.size, values.size))
+    require(weights.sum != 0, "weights cannot sum to zero: %s".format(weights.mkString(",")))
+    import Pairable._
+    ((weights pairElements values).map(wv => wv._1 * wv._2).sum)/weights.sum
+  }
+  def combine(values:Seq[Double], combineAlpha:Double) = {
+    val weights = (1 until values.size+1).map(i => math.pow(combineAlpha, i))
+    weightedAverage(weights, values)
+  }
+  def conditionals(countsMap: Map[Int, Int], smoothingDelta: Double, firstCounts: Int): Seq[Double] = {
+    countsMap.toSeq.sortBy(kv => kv._1).map(kv => kv._2.toDouble / (smoothingDelta + firstCounts.toDouble))
+  }
+
+}
+
+case class AffinityMeasures(firstUndir:Conditionals, firstDir:Conditionals, secondUndir:Conditionals, secondDir:Conditionals){
+
+  import AffinityMeasures._
+  def serialize = "%s%s%s%s%s%s%s".format(firstUndir.serialize, sep, firstDir.serialize, sep, secondUndir.serialize, sep, secondDir.serialize)
+  override def toString:String = "%s\t%s\t%s\t%s".format(firstUndir.toString, firstDir.toString, secondUndir.toString, secondDir.toString)
+}
+
+object Conditionals{
+
+  val sep = "_condsep_"
+  def fromSerializedString(string:String) = {
+    val splits = string.split(sep)
+    if (splits.size == 2){
+        val doubles = splits(0).split(",").map(x => x.toDouble)
+        Some(new Conditionals(doubles, splits(1).toDouble))
+    } else {
+      None
+    }
+
+  }
+}
+
+case class Conditionals(conditionals:Seq[Double], conditional:Double){
+  import Conditionals._
+  override def toString:String = "%s\t%.8f".format(conditionals.mkString("\t"), conditional)
+  def serialize:String = "%s%s%.8f".format(conditionals.mkString(","), sep, conditional)
+}
 case class Measures(urgc:UndirRelgramCounts, firstCounts:Int, secondCounts:Int){
   import Measures._
   def serialize:String = "%s%s%s%s%s".format(urgc.serialize, sep, firstCounts, sep, secondCounts)
   override def toString:String = "%s\t%s\t%s".format(urgc.toString, firstCounts, secondCounts)
+  def measures(windowAlpha:Double, smoothingDelta:Double) = {
+
+  }
 }

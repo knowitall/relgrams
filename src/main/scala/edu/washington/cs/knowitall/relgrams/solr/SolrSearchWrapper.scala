@@ -13,7 +13,7 @@ import org.apache.solr.client.solrj.{SolrQuery, SolrServer}
 import org.apache.solr.client.solrj.impl.{XMLResponseParser, HttpSolrServer}
 
 import scala.collection.JavaConversions._
-import edu.washington.cs.knowitall.relgrams.{Measures, RelationTuple}
+import edu.washington.cs.knowitall.relgrams.{AffinityMeasures, Measures, RelationTuple}
 
 import javax.xml.stream.XMLResolver
 
@@ -46,16 +46,29 @@ class SolrSearchWrapper(solrBaseUrl:String) {
   }
 
   import dispatch._
-  def search(query:RelgramsQuery): Seq[Measures] = {
+  def search(query:RelgramsQuery): Seq[(Measures, AffinityMeasures)] = {
     toSolrQuery(query) match {
       case Some(solrQuery:SolrQuery) => {
         logger.info("RelgramsQuery: " + query.toHTMLString)
         logger.info("SolrQuery: " + solrQuery)
         val results = server.query(solrQuery)
         logger.info("Query: %s returned %d solr documents.".format(solrQuery.toString, results.getResults.size))
-        results.getResults.flatMap(result => Measures.fromSerializedString(result.getFirstValue("serialize").toString))
+        results.getResults.flatMap(result => {
+          Measures.fromSerializedString(result.getFirstValue("serialize").toString) match {
+            case Some(m:Measures) => {
+              AffinityMeasures.fromSerializedString(result.getFirstValue("affinities").toString) match {
+                case Some(affinities:AffinityMeasures) => {
+                  Some((m, affinities))
+                }
+                case None => None
+              }
+            }
+
+            case None => None
+          }
+        })
       }
-      case None => Seq[Measures]()
+      case None => Seq[(Measures, AffinityMeasures)]()
     }
 
 
