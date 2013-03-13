@@ -28,16 +28,19 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  def loadRelgramCountsAndDistribute(relgramsPath:String, maxWindow:Int) = {
-    loadRelgramCounts(relgramsPath).map(rgc => {
+  def loadRelgramCountsAndDistribute(relgramsPath:String, maxWindow:Int, minDirFreq:Int) = {
+    loadRelgramCounts(relgramsPath, minDirFreq).map(rgc => {
       MapUtils.distributeCounts(rgc.counts, maxWindow)
       rgc
     })
   }
-  def loadRelgramCounts(relgramsPath:String) = {
+
+  def loadRelgramCounts(relgramsPath:String, minDirFreq:Int) = {
+    def aboveDirThreshold(rgc:RelgramCounts) = rgc.counts.values.max > minDirFreq
     import RelgramCounts._
     TextInput.fromTextFile(relgramsPath)
              .flatMap(line => fromSerializedString(line))
+             .filter(rgc => aboveDirThreshold(rgc))
   }
 
   def lexicallyOrderedKey(relgram: Relgram) = {
@@ -149,10 +152,10 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
     import UndirRelgramCounts._
     import Measures._
     import RelationTupleCounts._
-    def aboveThreshold(urgc:UndirRelgramCounts) = urgc.bitermCounts.values.max > minFreq
-    def aboveDirThreshold(rgc:RelgramCounts) = rgc.counts.values.max > minDirFreq
-    val relgramCounts = loadRelgramCountsAndDistribute(inputPath, maxWindow).filter(rgc => aboveDirThreshold(rgc))
+    val relgramCounts = loadRelgramCountsAndDistribute(inputPath, maxWindow, minDirFreq)
 
+
+    def aboveThreshold(urgc:UndirRelgramCounts) = urgc.bitermCounts.values.max > minFreq
     //NOTE filtering out relgrams that do not occur at least five times with each other.
     val undirCounts = toUndirRelgramCounts(relgramCounts).filter(urgc => aboveThreshold(urgc))
 
