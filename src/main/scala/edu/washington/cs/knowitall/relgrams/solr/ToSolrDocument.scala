@@ -11,17 +11,12 @@ import org.slf4j.LoggerFactory
 
 import io.Source
 
-import edu.washington.cs.knowitall.relgrams.{AffinityMeasures, Measures, UndirRelgramCounts, RelgramCounts}
-import xml.Elem
-import dispatch.Http
+import edu.washington.cs.knowitall.relgrams.{AffinityMeasures, Measures}
 import org.apache.solr.client.solrj.impl.{XMLResponseParser, HttpSolrServer}
 import org.apache.solr.common.SolrInputDocument
-import org.apache.solr.client.solrj.SolrServer
-import org.jets3t.service.impl.rest.XmlResponsesSaxParser
 
 class ToSolrDocument(solrServer:HttpSolrServer) {
    val logger = LoggerFactory.getLogger(this.getClass)
-  import dispatch._
   def addToIndex(id:Int, measures:Measures, affinities:AffinityMeasures) = {
     val undirrgc = measures.urgc
     val rgc = undirrgc.rgc
@@ -31,8 +26,6 @@ class ToSolrDocument(solrServer:HttpSolrServer) {
     val sarg1 = rgc.relgram.second.arg1
     val srel = rgc.relgram.second.rel
     val sarg2 = rgc.relgram.second.arg2
-    //val countsString = rgc.counts.keys.toSeq.sortBy(w => w).map(w => rgc.counts.getOrElse(w, 0))
-    //val countsString = rgc.counts.keys.toSeq.sortBy(w => w).map(w => rgc.counts.getOrElse(w, 0))
     val solrDoc = new SolrInputDocument
     solrDoc.addField("id", id)
     solrDoc.addField("farg1", farg1)
@@ -41,12 +34,9 @@ class ToSolrDocument(solrServer:HttpSolrServer) {
     solrDoc.addField("sarg1", sarg1)
     solrDoc.addField("srel", srel)
     solrDoc.addField("sarg2", sarg2)
-    //solrDoc.addField("counts", countsString)
-    //println("Counts: " + measures.firstCounts + " and " + measures.secondCounts)
     solrDoc.addField("serialize", measures.serialize)
     solrDoc.addField("affinities", affinities.serialize)
     solrServer.add(solrDoc)
-
   }
 
 }

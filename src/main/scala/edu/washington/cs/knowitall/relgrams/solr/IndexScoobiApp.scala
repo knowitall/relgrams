@@ -19,6 +19,7 @@ import scopt.mutable.OptionParser
 import scala.Some
 import org.apache.solr.client.solrj.impl.{XMLResponseParser, HttpSolrServer}
 import collection.mutable
+import com.nicta.scoobi.core.DList
 
 
 object IndexScoobiApp extends ScoobiApp {
@@ -34,7 +35,7 @@ object IndexScoobiApp extends ScoobiApp {
     var solrURL = ""
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
-      arg("solr", "solr server path", {str => solrURL})
+      arg("solr", "solr server path", {str => solrURL = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str})
       opt("minFreq", "minimum frequency for relgram.", {str => minFreq = str.toInt})
       opt("windowAlpha", "alpha decay for combining measures from different windows.", {str => windowAlpha = str.toDouble})
@@ -43,6 +44,7 @@ object IndexScoobiApp extends ScoobiApp {
 
     if (!parser.parse(args)) return
 
+    println("solrURL: " + solrURL)
     def aboveThreshold(measures:Measures) = measures.urgc.bitermCounts.values.max > minFreq
 
     val tosolrs = new mutable.HashMap[Thread, ToSolrDocument] with mutable.SynchronizedMap[Thread, ToSolrDocument]
@@ -53,17 +55,16 @@ object IndexScoobiApp extends ScoobiApp {
     }
 
     import Measures._
-    val output  = TextInput.fromTextFile(inputPath).flatMap(line => Measures.fromSerializedString(line) match {
+    val output:DList[Measures]  = TextInput.fromTextFile(inputPath).flatMap(line => Measures.fromSerializedString(line) match {
       case Some(measures:Measures) => {
         if (aboveThreshold(measures)){
 
           AffinityMeasures.fromMeasures(measures, windowAlpha, smoothingDelta) match {
             case Some(affinities:AffinityMeasures) => {
               val tosolr = tosolrs.getOrElseUpdate(Thread.currentThread(), getToSolr(solrURL))
-              println("Measures: " + measures.toString)
-              println("Affinities: " + affinities)
               tosolr.addToIndex(line.hashCode, measures, affinities)
-              Some(measures)
+              None
+              //Some(measures)
             }
             case _ => None
           }
@@ -74,7 +75,7 @@ object IndexScoobiApp extends ScoobiApp {
       case _ => None
     })
 
-    persist(TextOutput.toTextFile(output.map(x => 1), outputPath))
+    persist(TextOutput.toTextFile(output, outputPath))
 
   }
 

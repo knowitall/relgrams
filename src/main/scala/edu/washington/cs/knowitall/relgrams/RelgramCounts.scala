@@ -339,15 +339,18 @@ object AffinityMeasures{
 
 
     val firstUndirConditionals = conditionals(bitermCounts, smoothingDelta, firstCounts)
-    val firstDirConditionals = conditionals(bigramCounts, smoothingDelta, firstCounts)
     val firstUndirConditional = combine(firstUndirConditionals, windowAlpha)
+
+    val firstDirConditionals = conditionals(bigramCounts, smoothingDelta, firstCounts)
     val firstDirConditional = combine(firstDirConditionals, windowAlpha)
+
     val firstDir = new Conditionals(firstDirConditionals, firstDirConditional)
     val firstUndir = new Conditionals(firstUndirConditionals, firstUndirConditional)
 
     val secondUndirConditionals = conditionals(bitermCounts, smoothingDelta, secondCounts)
-    val secondDirConditionals = conditionals(bigramCounts, smoothingDelta, secondCounts)
     val secondUndirConditional = combine(secondUndirConditionals, windowAlpha)
+
+    val secondDirConditionals = conditionals(bigramCounts, smoothingDelta, secondCounts)
     val secondDirConditional = combine(secondDirConditionals, windowAlpha)
 
     val secondDir = new Conditionals(secondDirConditionals, secondDirConditional)
@@ -355,6 +358,7 @@ object AffinityMeasures{
 
     Some(new AffinityMeasures(firstUndir, firstDir, secondUndir, secondDir))
   }
+
 
 
   def weightedAverage(weights:Seq[Double], values:Seq[Double]) = {
@@ -371,40 +375,64 @@ object AffinityMeasures{
     countsMap.toSeq.sortBy(kv => kv._1).map(kv => kv._2.toDouble / (smoothingDelta + firstCounts.toDouble))
   }
 
+  def pmis(countsMap: Map[Int, Int], smoothingDelta: Double, firstCounts: Int, secondCounts:Int): Seq[Double] = {
+    countsMap.toSeq.sortBy(kv => kv._1).map(kv => math.log(kv._2.toDouble/(firstCounts + secondCounts).toDouble))
+  }
+
 }
 
-case class AffinityMeasures(firstUndir:Conditionals, firstDir:Conditionals, secondUndir:Conditionals, secondDir:Conditionals){
+case class AffinityMeasures(firstUndir:Conditionals, firstDir:Conditionals,
+                            secondUndir:Conditionals, secondDir:Conditionals){
 
   import AffinityMeasures._
   def serialize = "%s%s%s%s%s%s%s".format(firstUndir.serialize, sep, firstDir.serialize, sep, secondUndir.serialize, sep, secondDir.serialize)
   override def toString:String = "%s\t%s\t%s\t%s".format(firstUndir.toString, firstDir.toString, secondUndir.toString, secondDir.toString)
 }
 
-object Conditionals{
+object WindowedMeasure{
 
-  val sep = "_condsep_"
+  val sep = "_WSEP_"
   def fromSerializedString(string:String) = {
     val splits = string.split(sep)
     if (splits.size == 2){
-        val doubles = splits(0).split(",").map(x => x.toDouble)
-        Some(new Conditionals(doubles, splits(1).toDouble))
+      val doubles = splits(0).split(",").map(x => x.toDouble).toSeq
+      Some((doubles, splits(1).toDouble))
     } else {
       None
     }
+  }
 
+
+}
+case class WindowedMeasure(windowValues:Seq[Double],combinedValue:Double){
+  import WindowedMeasure._
+  override def toString:String = "%s\t%.8f".format(windowValues.mkString("\t"), combinedValue)
+  def serialize:String = "%s%s%.8f".format(windowValues.mkString(","), sep, combinedValue)
+}
+
+object Conditionals{
+  def fromSerializedString(string:String) = WindowedMeasure.fromSerializedString(string) match {
+    case Some((conditionals:Seq[Double], conditional:Double)) => Some(new Conditionals(conditionals, conditional))
+    case None => None
   }
 }
 
-case class Conditionals(conditionals:Seq[Double], conditional:Double){
-  import Conditionals._
-  override def toString:String = "%s\t%.8f".format(conditionals.mkString("\t"), conditional)
-  def serialize:String = "%s%s%.8f".format(conditionals.mkString(","), sep, conditional)
+case class Conditionals(conditionals:Seq[Double], conditional:Double) extends WindowedMeasure(conditionals, conditional)
+
+object PMIs{
+  def fromSerializedString(string:String) = WindowedMeasure.fromSerializedString(string) match {
+    case Some((pmis:Seq[Double], pmi:Double)) => Some(new PMIs(pmis, pmi))
+    case None => None
+  }
 }
+
+class PMIs(pmis:Seq[Double], pmi:Double) extends WindowedMeasure(pmis, pmi)
+
 case class Measures(urgc:UndirRelgramCounts, firstCounts:Int, secondCounts:Int){
   import Measures._
   def serialize:String = "%s%s%s%s%s".format(urgc.serialize, sep, firstCounts, sep, secondCounts)
   override def toString:String = "%s\t%s\t%s".format(urgc.toString, firstCounts, secondCounts)
   def measures(windowAlpha:Double, smoothingDelta:Double) = {
-
+    AffinityMeasures.fromMeasures(this, windowAlpha, smoothingDelta)
   }
 }

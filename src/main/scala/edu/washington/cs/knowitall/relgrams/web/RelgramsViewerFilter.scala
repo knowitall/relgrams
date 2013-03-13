@@ -174,13 +174,13 @@ object HtmlHelper{
     loginForm += "<input name=arg2 value=\"%s\"> Arg2</input><br/>\n".format(query.relationTuple.arg2)
 
 
-    loginForm += viewOptions(query)
+    /**loginForm += viewOptions(query)
     loginForm += measureOptions(query)
     loginForm += mesureIndexOptions(query)
 
     loginForm += alphaBox(query, 0.5)
     loginForm += deltaBox(query, 10)
-
+    */
     loginForm += "<input name=search type=\"submit\" value=\"search\"/>\n"//<span style="padding-left:300px"></span>
     loginForm += "</form>\n"
     //println(loginForm)
