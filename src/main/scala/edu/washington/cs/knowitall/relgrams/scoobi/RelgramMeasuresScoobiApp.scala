@@ -133,11 +133,13 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
     var inputPath, outputPath = ""
     var tuplesPath = ""
     var maxWindow = 50
+    var minFreq = 5
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
       arg("tuplesPath", "hdfs tuples path", {str => tuplesPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
       opt("maxWindow", "max window length.", {str => maxWindow = str.toInt})
+      opt("minFreq", "min freq for undirected cooccurrence", {str => minFreq = str.toInt})
     }
 
     if (!parser.parse(args)) return
@@ -146,8 +148,12 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
     import UndirRelgramCounts._
     import Measures._
     import RelationTupleCounts._
+    def aboveThreshold(urgc:UndirRelgramCounts) = urgc.bitermCounts.values.max > minFreq
     val relgramCounts = loadRelgramCountsAndDistribute(inputPath, maxWindow)
-    val undirCounts = toUndirRelgramCounts(relgramCounts)
+
+    //NOTE filtering out relgrams that do not occur at least five times with each other.
+    val undirCounts = toUndirRelgramCounts(relgramCounts).filter(urgc => aboveThreshold(urgc))
+
     val tupleCounts = loadRelationTupleCounts(tuplesPath)
     val measures = computeMeasures(undirCounts, tupleCounts)
     exportMeasures(measures, outputPath)

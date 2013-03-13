@@ -203,7 +203,7 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
   val tableTags = "<table border=1>\n%s\n</table>\n"
   //def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("Measure", "#(F,S)", "#(S,F)", "#(F,*)", "#(S,*)")
 
-  def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("P(S|F)", "#(F,S)", "#(S,F)", "#F", "#S")
+  def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("P(S|F)", "#(F,S)", "#(S,F)", "#F", "#S")
   def wrapResultsTableTags(content:String) = {
     tableTags.format(content)
   }

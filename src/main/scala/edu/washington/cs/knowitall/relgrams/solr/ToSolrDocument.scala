@@ -19,52 +19,10 @@ import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.SolrServer
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser
 
-object ToSolrDocument {
+class ToSolrDocument(solrServer:HttpSolrServer) {
    val logger = LoggerFactory.getLogger(this.getClass)
-
-  /**
-   *
-  <add>
-  <doc>
-    <field name="id">SOLR1000</field>
-    <field name="farg1">First arg1</field>
-    <field name="frel">eats</field>
-    <field name="farg2">second</field>
-    <field name="sarg1">Second arg1</field>
-    <field name="srel">also eats</field>
-    <field name="sarg2">second arg2</field>
-    <field name="count">10</field>
-  </doc>
-  </add>
-   */
-  var id = 0
-  def toSolrXML(rgc: RelgramCounts) = {
-    val farg1 = rgc.relgram.first.arg1
-    val frel = rgc.relgram.first.rel
-    val farg2 = rgc.relgram.first.arg2
-    val sarg1 = rgc.relgram.second.arg1
-    val srel = rgc.relgram.second.rel
-    val sarg2 = rgc.relgram.second.arg2
-
-    val countsString = rgc.counts.keys.toSeq.sortBy(w => w).map(w => rgc.counts.getOrElse(w, 0))
-    <add>
-      <doc>
-        <field name="id">{id}</field>
-        <field name="farg1">{farg1}</field>
-        <field name="frel">{frel}</field>
-        <field name="farg2">{farg2}</field>
-        <field name="sarg1">{sarg1}</field>
-        <field name="srel">{srel}</field>
-        <field name="sarg2">{sarg2}</field>
-        <field name="counts">{countsString}</field>
-      </doc>
-    </add>
-  }
-
-  val http = new Http
-  var solrServer:HttpSolrServer = null
   import dispatch._
-  def addToIndex(measures:Measures, affinities:AffinityMeasures) = {
+  def addToIndex(id:Int, measures:Measures, affinities:AffinityMeasures) = {
     val undirrgc = measures.urgc
     val rgc = undirrgc.rgc
     val farg1 = rgc.relgram.first.arg1
@@ -91,6 +49,9 @@ object ToSolrDocument {
 
   }
 
+}
+
+object ToSolrDocument{
 
   def main(args:Array[String]){
 
@@ -99,21 +60,25 @@ object ToSolrDocument {
     val windowAlpha = args(2).toDouble
     val smoothingDelta = args(3).toDouble
 
-    solrServer = new HttpSolrServer(solrPath)
+    val solrServer = new HttpSolrServer(solrPath)
     solrServer.setParser(new XMLResponseParser())
+    val tosol = new ToSolrDocument(solrServer)
+    var id = 0
     Source.fromFile(inputPath).getLines().foreach(line => {
       Measures.fromSerializedString(line) match {
         case Some(measures:Measures) => {
-          val affinities =AffinityMeasures.fromMeasures(measures, windowAlpha, smoothingDelta)
-          val response = addToIndex(measures, affinities)
-          println("response: " + response)
-          id = id + 1
+          AffinityMeasures.fromMeasures(measures, windowAlpha, smoothingDelta) match {
+            case Some(affinities:AffinityMeasures) => {
+              val response = tosol.addToIndex(id, measures, affinities)
+              println("response: " + response)
+              id = id + 1
+            }
+            case _ =>
+          }
         }
-        case None =>
+        case _ =>
       }
     })
     solrServer.commit()
-
-
   }
 }

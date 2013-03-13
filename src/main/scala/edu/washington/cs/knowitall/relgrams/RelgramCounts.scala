@@ -353,7 +353,7 @@ object AffinityMeasures{
     val secondDir = new Conditionals(secondDirConditionals, secondDirConditional)
     val secondUndir = new Conditionals(secondUndirConditionals, secondUndirConditional)
 
-    new AffinityMeasures(firstUndir, firstDir, secondUndir, secondDir)
+    Some(new AffinityMeasures(firstUndir, firstDir, secondUndir, secondDir))
   }
 
 
