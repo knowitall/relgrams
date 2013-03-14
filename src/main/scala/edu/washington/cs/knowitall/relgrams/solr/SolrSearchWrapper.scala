@@ -27,7 +27,7 @@ class SolrSearchWrapper(solrBaseUrl:String) {
   def toSolrQuery(query:RelgramsQuery):Option[SolrQuery] = {
     val solrQuery = new SolrQuery()
     solrQuery.setQuery("*:*")
-
+    solrQuery.setRows(100000)
     def isEmpty(string:String) = string.isEmpty
 
     if (!isEmpty(query.relationTuple.arg1)) solrQuery.addFilterQuery("farg1:" + query.relationTuple.arg1)
@@ -81,7 +81,7 @@ object SolrSearchWrapperTest{
   def main(args:Array[String]){
     val url = args(0)
     val server = new SolrSearchWrapper(url)
-    val query = new RelgramsQuery(RelationTuple.fromArg1RelArg2("", "pay", ""),MeasureName.bigram, 10, 0.5, 0.5, "ARG1RELARG2")
+    val query = new RelgramsQuery(RelationTuple.fromArg1RelArg2("", "pay", ""),MeasureName.bigram, 10, 0.5, 0.5, "ARG1RELARG2", "conditional", "both")
     logger.info("relgramsQuery: " + query.toHTMLString)
     val results = server.search(query)
     logger.info(results.mkString(","))

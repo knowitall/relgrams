@@ -107,6 +107,11 @@ case class RelationTuple(arg1:String, rel:String, arg2:String,
                          var ids:Set[String],
                          var arg1HeadCounts:scala.collection.mutable.Map[String,Int],
                          var arg2HeadCounts:scala.collection.mutable.Map[String,Int]){
+  def isIdenticalTo(that: RelationTuple) ={
+    arg1.toLowerCase.equals(that.arg1.toLowerCase) &&
+    rel.toLowerCase.equals(that.rel.toLowerCase) &&
+    arg2.toLowerCase.equals(that.arg2.toLowerCase)
+  }
 
   import RelationTuple._
   def serialize:String = toString

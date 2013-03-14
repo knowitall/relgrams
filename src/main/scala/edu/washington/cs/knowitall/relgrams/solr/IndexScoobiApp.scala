@@ -62,7 +62,8 @@ object IndexScoobiApp extends ScoobiApp {
           AffinityMeasures.fromMeasures(measures, windowAlpha, smoothingDelta) match {
             case Some(affinities:AffinityMeasures) => {
               val tosolr = tosolrs.getOrElseUpdate(Thread.currentThread(), getToSolr(solrURL))
-              tosolr.addToIndex(line.hashCode, measures, affinities)
+              val id = measures.urgc.rgc.relgram.prettyString.hashCode + System.currentTimeMillis()
+              tosolr.addToIndex(id.toInt, measures, affinities)
               None
               //Some(measures)
             }
