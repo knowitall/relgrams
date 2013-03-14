@@ -49,11 +49,13 @@ class RelgramsQuery(val relationTuple:RelationTuple,
                     val measureIndex:Int,
                     val alpha:Double,
                     val smoothingDelta:Double,
-                    val outputView:String){
+                    val outputView:String,
+                    val sortBy:String,
+                    val equalityOption:String){
 
-  override def toString:String = relationTuple.toString() + "\t" + measure + "\t" + measureIndex + "\t" + outputView
+  override def toString:String = relationTuple.toString() + "\t" + measure + "\t" + measureIndex + "\t" + outputView + "\t" + sortBy + "\t" + equalityOption
   def toHTMLString(relationTuple:RelationTuple):String = "(%s;%s;%s)".format(relationTuple.arg1, relationTuple.rel, relationTuple.arg2)
-  def toHTMLString:String = toHTMLString(relationTuple) + "\t" + measure + "\t" + measureIndex + "\t" + outputView
+  def toHTMLString:String = toHTMLString(relationTuple) + "\t" + measure + "\t" + measureIndex + "\t" + outputView + "\t" + sortBy + "\t" + equalityOption
 
 }
 
@@ -64,7 +66,8 @@ object ReqHelper{
     case true => req.parameterValues(paramName)(0).trim
     case false => ""
   }
-
+  def getEqualityOption(req:HttpRequest[HttpServletRequest]) = getParamValue("equalityOption", req)
+  def getSortBy(req:HttpRequest[HttpServletRequest]) = getParamValue("sortBy", req)
   def getArg1(req:HttpRequest[HttpServletRequest]) = getParamValue("arg1", req)
   def getRel(req:HttpRequest[HttpServletRequest]) = getParamValue("rel", req)
   def getArg2(req:HttpRequest[HttpServletRequest]) = getParamValue("arg2", req)
@@ -82,7 +85,9 @@ object ReqHelper{
                           getIndex(req),
                           getAlpha(req),
                           getSmoothingDelta(req),
-                          getOutputView(req))
+                          getOutputView(req),
+                          getSortBy(req),
+                          getEqualityOption(req))
   }
 }
 
@@ -107,6 +112,9 @@ object HtmlHelper{
 
   }
 
+  def optionString(measureName:String, selectedString:String, displayName:String) = {
+    "<option value=\"%s\" %s>%s</option>\n".format(measureName, selectedString, displayName)//
+  }
   def measureOptions(query: RelgramsQuery): String = {
 
     var bigramSelected, bitermSelected, psgfSelected, psgfUndirSelected, pmiSelected, npmiSelected = ""
@@ -126,9 +134,7 @@ object HtmlHelper{
       case _ => bigramSelected = "selected"
 
     }
-    def optionString(measureName:String, selectedString:String, displayName:String) = {
-      "<option value=\"%s\" %s>%s</option>\n".format(measureName, selectedString, displayName)//
-    }
+
 
     "<select name=\"measure\">\n" +
       optionString(MeasureName.bigram.toString, bigramSelected, "#(F,S)") +
@@ -142,6 +148,50 @@ object HtmlHelper{
       optionString(MeasureName.pmi_combined.toString, pmiCombinedSelected, "Combined PMI") +
       optionString(MeasureName.npmi_combined.toString, npmiCombinedSelected, "Combined NPMI") +
       "</select> Measure<br/><br/><br/>\n"
+  }
+
+  def equalityOptions(query:RelgramsQuery):String = {
+    var equalitySelected = ""
+    var noequalitySelected = ""
+    var bothSelected = ""
+
+    query.equalityOption match {
+      case "equality" => equalitySelected = "selected"
+      case "noequality" => noequalitySelected = "selected"
+      case "both" => bothSelected = "selected"
+      case _ => bothSelected = "selected"
+    }
+
+    "<select name=\"equalityOption\">"+
+    optionString("equality", equalitySelected, "Equality Relgrams") +
+    optionString("noequality", noequalitySelected, "No Equality Relgrams") +
+    optionString("both", bothSelected, "All Relgrams") +
+    "</select> Equality<br/><br/><br/>"
+  }
+  def sortByOptions(query:RelgramsQuery):String = {
+
+    var conditionalSelected = ""
+    var fsSelected = ""
+    var sfSelected = ""
+    var fSelected = ""
+    var sSelected = ""
+
+    query.sortBy match {
+      case "conditional" => conditionalSelected = "selected"
+      case "fs" => fsSelected = "selected"
+      case "sf" => sfSelected = "selected"
+      case "f" => fSelected = "selected"
+      case "s" => sSelected = "selected"
+      case _ => fsSelected = "selected"
+    }
+    "<select name =\"sortBy\">" +
+    optionString("conditional", conditionalSelected, "P(S|F)") +
+    optionString("fs", fsSelected, "#(F,S)") +
+    optionString("sf", sfSelected, "#(S,F)") +
+    optionString("f", fSelected, "#F") +
+    optionString("s", sSelected, "#S") +
+    "</select> Sort By<br/><br/><br/>\n"
+
   }
   def mesureIndexOptions(query: RelgramsQuery): String = {
 
@@ -173,7 +223,8 @@ object HtmlHelper{
     loginForm += "<input name=rel value=\"%s\"> Rel</input><br/>\n".format(query.relationTuple.rel)
     loginForm += "<input name=arg2 value=\"%s\"> Arg2</input><br/>\n".format(query.relationTuple.arg2)
 
-
+    loginForm += sortByOptions(query)
+    loginForm += equalityOptions(query)
     /**loginForm += viewOptions(query)
     loginForm += measureOptions(query)
     loginForm += mesureIndexOptions(query)
@@ -194,7 +245,7 @@ object HtmlHelper{
 class RelgramsViewerFilter extends unfiltered.filter.Plan {
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  val solrManager = new SolrSearchWrapper("http://localhost:10000/solr/relgrams")
+  val solrManager = new SolrSearchWrapper("http://rv-n15.cs.washington.edu:10000/solr/relgrams")
 
   def wrapHtml(content:String) = "<html>" + content + "</html>"
 
@@ -209,7 +260,7 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
   }
 
   val rowTags = "<tr>%s<tr>\n"
-  def toResultsRow(query:RelgramsQuery, measures:Measures, affinities:AffinityMeasures):String = rowTags.format(resultsRowContent(query, measures, affinities))
+  def toResultsRow(measureName:String, query:RelgramsQuery, measures:Measures, affinities:AffinityMeasures):String = rowTags.format(resultsRowContent(measureName, query, measures, affinities))
 
   def fromTabToColonFmt(text:String) = {
     "(%s)".format(text.replaceAll("\t", "; "))
@@ -238,25 +289,36 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
     val splits = toDisplayText(text).split("\t")
     """(<a href="#" TITLE="%s">%s</a>;%s;<a href="#" TITLE="%s">%s</a>)""".format(arg1TopArgs, splits(0), splits(1), arg2TopArgs, splits(2))
   }
-  def resultsRowContent(query:RelgramsQuery, measures:Measures, affinities:AffinityMeasures):String = {
+  def resultsRowContent(measureName:String, query:RelgramsQuery, measures:Measures, affinities:AffinityMeasures):String = {
+
+    val measureVal = getMeasure(measureName, measures, affinities)
     val undirRGC = measures.urgc
     val rgc = undirRGC.rgc
-    //val measureValue = undirRGC.bitermCounts.values.max//(query.measureIndex)//(query.measure, query.measureIndex)
     val fscount = undirRGC.rgc.counts.values.max
     val bitermCount = undirRGC.bitermCounts.values.max
+    val sfcount = bitermCount - fscount
     "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>".format(relationWithRelArgs(rgc.relgram.first),
       relationWithRelArgs(rgc.relgram.second),
-      affinities.firstUndir.conditional,
+      measureVal,
       fscount,
-      (bitermCount-fscount),
-      measures.firstCounts, measures.secondCounts)
+      sfcount,
+      measures.firstCounts,
+      measures.secondCounts)
 
     //mrvg.relviewGrams.firstSecondCounts.get(9))
   }
 
-  def renderSearchResults(query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
+  def agreesWithEqualityOption(equalityOption: String, tuple: (Measures, AffinityMeasures)): Boolean = equalityOption match {
+    case "equality" => tuple._1.urgc.rgc.prettyString.contains("XVAR")
+    case "noequality" => !tuple._1.urgc.rgc.prettyString.contains("XVAR")
+    case "both" => true
+    case _  => false
+  }
+
+  def renderSearchResults(measureName:String, query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
     wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n" +
-                         results._2.map(ma => toResultsRow(query, ma._1, ma._2)).mkString("\n"))
+                         results._2.filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
+                                   .map(ma => toResultsRow(measureName, query, ma._1, ma._2)).mkString("\n"))
   }
 
 
@@ -268,14 +330,35 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
     return bool
   }
 
+  def sortByMeasure(tuple: (Measures, AffinityMeasures), sortBy:String) = {
+    val measure = getMeasure(sortBy, tuple)
+    0-measure
+  }
+
+
+  def getMeasure(measureName: String, tuple: (Measures, AffinityMeasures)): Double = {
+    val (measures, affinities) = tuple
+    getMeasure(measureName, measures, affinities)
+  }
+  def getMeasure(measureName:String, measures:Measures, affinities:AffinityMeasures):Double = measureName match {
+    case "conditional" => affinities.firstUndir.conditional
+    case "fs" => measures.urgc.rgc.counts.values.max.toDouble
+    case "sf" => (measures.urgc.bitermCounts.values.max - measures.urgc.rgc.counts.values.max).toDouble
+    case "f" => measures.firstCounts.toDouble
+    case "s" => measures.secondCounts.toDouble
+    case _ => affinities.firstUndir.conditional
+  }
+
   def intent: Plan.Intent = {
 
     case req @ GET(Path("/relgrams")) => {
       val relgramsQuery = ReqHelper.getRelgramsQuery(req)
+      val sortBy = ReqHelper.getSortBy(req)
       val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
-
+      val sortedResults = results._2.sortBy(ma => sortByMeasure(ma, sortBy))
       ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery) + "<br/><br/>"
-        + renderSearchResults(relgramsQuery, results)))//"" + "Arg1: " + relgramsQuery.toHTMLString) )
+        + renderSearchResults("conditional", relgramsQuery, (results._1, sortedResults))))
+        //"" + "Arg1: " + relgramsQuery.toHTMLString) )
     }
   }
 }
