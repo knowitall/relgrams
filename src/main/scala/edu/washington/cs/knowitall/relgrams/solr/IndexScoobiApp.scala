@@ -65,7 +65,6 @@ object IndexScoobiApp extends ScoobiApp {
               val id = measures.urgc.rgc.relgram.prettyString.hashCode + System.currentTimeMillis()
               tosolr.addToIndex(id.toInt, measures, affinities)
               None
-              //Some(measures)
             }
             case _ => None
           }
