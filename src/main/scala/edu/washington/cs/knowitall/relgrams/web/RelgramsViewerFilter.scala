@@ -272,6 +272,7 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
 
     case req @ GET(Path("/relgrams")) => {
       val relgramsQuery = ReqHelper.getRelgramsQuery(req)
+
       val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
 
       ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery) + "<br/><br/>"
