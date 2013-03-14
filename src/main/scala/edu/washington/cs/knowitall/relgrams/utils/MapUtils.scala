@@ -19,7 +19,7 @@ object MapUtils {
 
   def distributeCounts(counts: mutable.Map[Int, Int], maxWindow:Int) = {
     var sum = 0
-    (0 until maxWindow).foreach(window => {
+    (1 until (maxWindow+1)).foreach(window => {
       sum = sum + counts.getOrElse(window, 0)
       counts += window -> sum
     })
@@ -96,6 +96,12 @@ object MapUtils {
     addTo(map, map)
     println("Map:%s".format(toCountsString(map, ",", ":")))
 
+    var cmap = new mutable.HashMap[Int, Int]()
+    updateCounts(cmap, 1, 0)
+    updateCounts(cmap, 10, 1)
+    updateCounts(cmap, 20, 1)
+    distributeCounts(cmap, 50)
+    println("Map:%s".format(toIntIntCountsString(cmap)))
   }
   def updateCounts[A, B](counts:scala.collection.mutable.Map[A, B], key:A, count:B)(implicit numeric: Numeric[B]){
     val updatedCount = counts.get(key) match {
