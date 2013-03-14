@@ -315,9 +315,12 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
     case _  => false
   }
 
+  def hasTypeQuantity(tuple:RelationTuple):Boolean = tuple.arg1.contains("Type:quantity") || tuple.arg2.contains("Type:quantity")
+  def hasTypeQuantity(relgram:Relgram):Boolean = hasTypeQuantity(relgram.first) || hasTypeQuantity(relgram.second)
   def renderSearchResults(measureName:String, query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
     wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n" +
                          results._2.filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
+                                   .filter(ma => hasTypeQuantity(ma._1.urgc.rgc.relgram))
                                    .map(ma => toResultsRow(measureName, query, ma._1, ma._2)).mkString("\n"))
   }
 
