@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest
 import unfiltered.response.ResponseString
 import edu.washington.cs.knowitall.relgrams.solr.SolrSearchWrapper
 import unfiltered.response.ResponseString
+import scopt.mutable.OptionParser
 
 
 object MeasureName extends Enumeration("bigram", "biterm", "psgf", "pfgs", "psgf_undir", "pmi", "npmi", "pmi_undir", "npmi_undir",
@@ -62,24 +63,37 @@ class RelgramsQuery(val relationTuple:RelationTuple,
 
 object ReqHelper{
 
-  def getParamValue(paramName:String, req:HttpRequest[HttpServletRequest]):String = req.parameterNames.contains(paramName) match {
+  def getParamValue(paramName:String, req:HttpRequest[Any]):String = req.parameterNames.contains(paramName) match {
     case true => req.parameterValues(paramName)(0).trim
     case false => ""
   }
-  def getEqualityOption(req:HttpRequest[HttpServletRequest]) = getParamValue("equalityOption", req)
-  def getSortBy(req:HttpRequest[HttpServletRequest]) = getParamValue("sortBy", req)
-  def getArg1(req:HttpRequest[HttpServletRequest]) = getParamValue("arg1", req)
-  def getRel(req:HttpRequest[HttpServletRequest]) = getParamValue("rel", req)
-  def getArg2(req:HttpRequest[HttpServletRequest]) = getParamValue("arg2", req)
-  def getMeasure(req:HttpRequest[HttpServletRequest]) = try { MeasureName.withName(getParamValue("measure", req)) } catch { case  e:Exception => MeasureName.psgf }
-  def getAlpha(req:HttpRequest[HttpServletRequest]) = try {getParamValue("alpha", req).toDouble} catch { case e:Exception => -1.0}
-  def getSmoothingDelta(req:HttpRequest[HttpServletRequest]) = try {getParamValue("delta", req).toDouble} catch { case e:Exception => -1.0}
+  def getParamValues(paramName:String, req:HttpRequest[Any]):Seq[String] = req.parameterNames.contains(paramName) match {
+    case true => req.parameterValues(paramName).map(x => x.trim)
+    case false => Seq[String]()
+  }
+  def getEqualityOption(req:HttpRequest[Any]) = {
+    val values = getParamValues("equalityOption", req)
+    if (values.size > 1)
+      "both"
+    else if(values.size == 1)
+      values(0)
+    else
+      ""
 
-  def getIndex(req:HttpRequest[HttpServletRequest]) = try { getParamValue("k", req).toInt } catch { case e:Exception => 1}
+  }
+  def getSortBy(req:HttpRequest[Any]) = getParamValue("sortBy", req)
+  def getArg1(req:HttpRequest[Any]) = getParamValue("arg1", req)
+  def getRel(req:HttpRequest[Any]) = getParamValue("rel", req)
+  def getArg2(req:HttpRequest[Any]) = getParamValue("arg2", req)
+  def getMeasure(req:HttpRequest[Any]) = try { MeasureName.withName(getParamValue("measure", req)) } catch { case  e:Exception => MeasureName.psgf }
+  def getAlpha(req:HttpRequest[Any]) = try {getParamValue("alpha", req).toDouble} catch { case e:Exception => -1.0}
+  def getSmoothingDelta(req:HttpRequest[Any]) = try {getParamValue("delta", req).toDouble} catch { case e:Exception => -1.0}
 
-  def getOutputView(req:HttpRequest[HttpServletRequest]) = getParamValue("v", req)
+  def getIndex(req:HttpRequest[Any]) = try { getParamValue("k", req).toInt } catch { case e:Exception => 1}
 
-  def getRelgramsQuery(req:HttpRequest[HttpServletRequest]) = {
+  def getOutputView(req:HttpRequest[Any]) = getParamValue("v", req)
+
+  def getRelgramsQuery(req:HttpRequest[Any]) = {
     new RelgramsQuery(RelationTuple.fromArg1RelArg2(getArg1(req),getRel(req),getArg2(req)),
                           getMeasure(req),
                           getIndex(req),
@@ -168,6 +182,21 @@ object HtmlHelper{
     optionString("both", bothSelected, "All Relgrams") +
     "</select> Equality<br/><br/><br/>"
   }
+  def equalityCheckBoxes(query:RelgramsQuery):String = {
+
+    var equalitySelected = ""
+    var noequalitySelected = ""
+
+
+    query.equalityOption match {
+      case "equality" => equalitySelected = "checked"
+      case "noequality" => noequalitySelected = "checked"
+      case "both" => {equalitySelected = "checked"; noequalitySelected = "checked"}
+      case _ => {equalitySelected = "checked"; noequalitySelected = "checked"}
+    }
+      "<input type=\"checkbox\" name=\"equalityOption\" value=\"equality\" %s>Equality</input><br/>".format(equalitySelected) +
+      "<input type=\"checkbox\" name=\"equalityOption\" value=\"noequality\" %s/>No Equality</input><br/>".format(noequalitySelected)
+  }
   def sortByOptions(query:RelgramsQuery):String = {
 
     var conditionalSelected = ""
@@ -214,7 +243,29 @@ object HtmlHelper{
     """<input name=delta value="%.2f"> Delta (Smoothing factor hack: 10,100,1000 etc. Higher values discount more.)</input><br/>""".format(value)
   }
 
-  def createForm(query:RelgramsQuery): String = {
+
+  def scrubHTML(string:String) = {
+    import org.apache.commons.lang.StringEscapeUtils.escapeHtml
+    escapeHtml(string)
+  }
+
+  def createXMLForm(query:RelgramsQuery): String = {
+
+    //def scrubHTML(text:String) =
+
+   /** val arg1 = query.relationTuple.arg1
+    val rel = query.relationTuple.rel
+    val arg2 = query.relationTuple.arg2
+    val title = "Relgrams Search Interface:"
+    val formName = "relgrams"
+
+    <h3>{title}</h3>
+    <form action={formName}>
+      <input name="arg1" value={arg1}>"Arg1"</input>
+      <input name="rel" value={rel}>"Rel"</input>
+      <input name="arg1" value={arg2}>"Arg2"</input>
+      sortByElem
+    </form>*/
 
     var loginForm:String = "<h3>Relgrams Search Interface:</h3><br/><br/>\n"
     loginForm += "<form action=\"relgrams\">\n"
@@ -224,7 +275,35 @@ object HtmlHelper{
     loginForm += "<input name=arg2 value=\"%s\"> Arg2</input><br/>\n".format(query.relationTuple.arg2)
 
     loginForm += sortByOptions(query)
-    loginForm += equalityOptions(query)
+    loginForm += equalityCheckBoxes(query)//equalityOptions(query)
+    /**loginForm += viewOptions(query)
+    loginForm += measureOptions(query)
+    loginForm += mesureIndexOptions(query)
+
+    loginForm += alphaBox(query, 0.5)
+    loginForm += deltaBox(query, 10)
+      */
+    loginForm += "<input name=search type=\"submit\" value=\"search\"/>\n"//<span style="padding-left:300px"></span>
+    loginForm += "</form>\n"
+    //println(loginForm)
+    return loginForm
+  }
+
+  def createForm(query:RelgramsQuery): String = {
+
+    val arg1 = scrubHTML(query.relationTuple.arg1)
+    val rel = scrubHTML(query.relationTuple.rel)
+    val arg2 = scrubHTML(query.relationTuple.arg2)
+
+    var loginForm:String = "<h3>Relgrams Search Interface:</h3><br/><br/>\n"
+    loginForm += "<form action=\"relgrams\">\n"
+    //loginForm += "<textarea name=original rows=10 cols=40>" + document + "</textarea><br/>"
+    loginForm += "<input name=arg1 value=\"%s\"> Arg1</input><br/>\n".format(arg1)
+    loginForm += "<input name=rel value=\"%s\"> Rel</input><br/>\n".format(rel)
+    loginForm += "<input name=arg2 value=\"%s\"> Arg2</input><br/>\n".format(arg2)
+
+    loginForm += sortByOptions(query)
+    loginForm += equalityCheckBoxes(query)//equalityOptions(query)
     /**loginForm += viewOptions(query)
     loginForm += measureOptions(query)
     loginForm += mesureIndexOptions(query)
@@ -242,10 +321,10 @@ object HtmlHelper{
 
 }
 
-class RelgramsViewerFilter extends unfiltered.filter.Plan {
+object RelgramsViewerFilter extends unfiltered.filter.Plan {
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  val solrManager = new SolrSearchWrapper("http://rv-n15.cs.washington.edu:10000/solr/relgrams")
+  var solrManager = new SolrSearchWrapper("http://rv-n15.cs.washington.edu:10000/solr/relgrams")
 
   def wrapHtml(content:String) = "<html>" + content + "</html>"
 
@@ -308,18 +387,28 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
     //mrvg.relviewGrams.firstSecondCounts.get(9))
   }
 
+  def hasEquality(tuple:RelationTuple):Boolean = tuple.arg1.contains("XVAR") || tuple.arg2.contains("XVAR")
+  def hasEquality(relgram:Relgram):Boolean = hasEquality(relgram.first) || hasEquality(relgram.second)
   def agreesWithEqualityOption(equalityOption: String, tuple: (Measures, AffinityMeasures)): Boolean = equalityOption match {
-    case "equality" => tuple._1.urgc.rgc.prettyString.contains("XVAR")
-    case "noequality" => !tuple._1.urgc.rgc.prettyString.contains("XVAR")
-    case "both" => true
-    case _  => false
+    case "equality" => hasEquality(tuple._1.urgc.rgc.relgram)
+    case "noequality" => !hasEquality(tuple._1.urgc.rgc.relgram)
+    case _ => true
   }
 
   def hasTypeQuantity(tuple:RelationTuple):Boolean = tuple.arg1.contains("Type:quantity") || tuple.arg2.contains("Type:quantity")
   def hasTypeQuantity(relgram:Relgram):Boolean = hasTypeQuantity(relgram.first) || hasTypeQuantity(relgram.second)
+
+  var minFreq = 0
+  def aboveThreshold(urgc:UndirRelgramCounts) = urgc.rgc.counts.values.max > minFreq
+
+  def isIdentityRelgram(relgram:Relgram) = {
+    relgram.first.isIdenticalTo(relgram.second)
+  }
   def renderSearchResults(measureName:String, query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
     wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n" +
-                         results._2.filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
+                         results._2.filter(ma => !isIdentityRelgram(ma._1.urgc.rgc.relgram))
+                                   .filter(ma => aboveThreshold(ma._1.urgc))
+                                   .filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
                                    .filter(ma => !hasTypeQuantity(ma._1.urgc.rgc.relgram))
                                    .map(ma => toResultsRow(measureName, query, ma._1, ma._2)).mkString("\n"))
   }
@@ -356,6 +445,7 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
 
     case req @ GET(Path("/relgrams")) => {
       val relgramsQuery = ReqHelper.getRelgramsQuery(req)
+      logger.info("Query: " + relgramsQuery)
       val sortBy = ReqHelper.getSortBy(req)
       val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
       val sortedResults = results._2.sortBy(ma => sortByMeasure(ma, sortBy))
@@ -364,4 +454,30 @@ class RelgramsViewerFilter extends unfiltered.filter.Plan {
         //"" + "Arg1: " + relgramsQuery.toHTMLString) )
     }
   }
+
+  val intentVal = unfiltered.netty.cycle.Planify {
+    case req @ GET(Path("/relgrams")) => {
+      val relgramsQuery = ReqHelper.getRelgramsQuery(req)
+      logger.info("Query: " + relgramsQuery)
+      val sortBy = ReqHelper.getSortBy(req)
+      val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
+      val sortedResults = results._2.sortBy(ma => sortByMeasure(ma, sortBy))
+      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery) + "<br/><br/>"
+        + renderSearchResults("conditional", relgramsQuery, (results._1, sortedResults))))
+      //"" + "Arg1: " + relgramsQuery.toHTMLString) )
+    }
+  }
+
+  def main(args:Array[String]){
+
+    var port = 10000
+    val parser = new OptionParser() {
+      arg("solrURL", "hdfs input path", {str => solrManager = new SolrSearchWrapper(str)})
+      opt("port", "port to run on.", {str => port = str.toInt})
+      opt("minFreq", "minimum frequency threshold", {str => minFreq = str.toInt})
+    }
+    if (!parser.parse(args)) return
+    unfiltered.netty.Http(port).plan(intentVal).run()
+  }
+
 }
