@@ -19,6 +19,7 @@ import unfiltered.response.ResponseString
 import edu.washington.cs.knowitall.relgrams.solr.SolrSearchWrapper
 import unfiltered.response.ResponseString
 import scopt.mutable.OptionParser
+import java.net.{URLEncoder, URL}
 
 
 object MeasureName extends Enumeration("bigram", "biterm", "psgf", "pfgs", "psgf_undir", "pmi", "npmi", "pmi_undir", "npmi_undir",
@@ -288,8 +289,8 @@ object HtmlHelper{
     //println(loginForm)
     return loginForm
   }
-  var exampleURL = "" // "%s:%s/relgrams?arg1=%22xvar+type+person%22&rel=%22die+in%22&arg2=%22type+time+unit%22&sortBy=fs&equalityOption=equality&search=search".format(hostname, port)
-  val usage = <div>
+
+  def usage(exampleURL:String) = (<div>
               <b>Usage:</b> Can be used to find rel-grams whose first tuple matches the fields specified below.
               <br/>
               <ul>
@@ -299,16 +300,17 @@ object HtmlHelper{
               <li>Example: <a href={exampleURL}>Find tuples matching (XVAR:Type:Person, die in, Type:time_unit)</a></li>
               </ul>
               <br/>
-              </div>
-  def createForm(query:RelgramsQuery): String = {
+              </div>).toString
+  def createForm(query:RelgramsQuery, host:String, port:Int): String = {
 
+    val exampleURL = """http://%s:%s/relgrams?arg1="xvar+type+person"&rel="die+in"&arg2="type+time+unit"&sortBy=fs&equalityOption=equality&search=search""".format(host, port)
     val arg1 = scrubHTML(query.relationTuple.arg1)
     val rel = scrubHTML(query.relationTuple.rel)
     val arg2 = scrubHTML(query.relationTuple.arg2)
 
 
     var loginForm:String = "<h3>Relgrams Search Interface:</h3><br/><br/>\n"
-    loginForm += usage.toString()
+    loginForm += usage(exampleURL)
     loginForm += "<form action=\"relgrams\">\n"
 
     //loginForm += "<textarea name=original rows=10 cols=40>" + document + "</textarea><br/>"
@@ -464,12 +466,14 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
       val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
       val sortedResults = results._2.sortBy(ma => sortByMeasure(ma, sortBy))
-      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery) + "<br/><br/>"
+      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery, "localhost", 10000) + "<br/><br/>"
         + renderSearchResults("conditional", relgramsQuery, (results._1, sortedResults))))
         //"" + "Arg1: " + relgramsQuery.toHTMLString) )
     }
   }
 
+  var host = "localhost"
+  var port = 10000
   val intentVal = unfiltered.netty.cycle.Planify {
     case req @ GET(Path("/relgrams")) => {
       val relgramsQuery = ReqHelper.getRelgramsQuery(req)
@@ -477,7 +481,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
       val sortBy = ReqHelper.getSortBy(req)
       val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
       val sortedResults = results._2.sortBy(ma => sortByMeasure(ma, sortBy))
-      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery) + "<br/><br/>"
+      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery,host, port) + "<br/><br/>"
         + renderSearchResults("conditional", relgramsQuery, (results._1, sortedResults))))
       //"" + "Arg1: " + relgramsQuery.toHTMLString) )
     }
@@ -485,10 +489,11 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   def main(args:Array[String]){
 
-    var port = 10000
+    //var port = 10000
     val parser = new OptionParser() {
       arg("solrURL", "hdfs input path", {str => solrManager = new SolrSearchWrapper(str)})
       opt("port", "port to run on.", {str => port = str.toInt})
+      opt("host", "port to run on.", {str => host = str})
       opt("minFreq", "minimum frequency threshold", {str => minFreq = str.toInt})
     }
     if (!parser.parse(args)) return
