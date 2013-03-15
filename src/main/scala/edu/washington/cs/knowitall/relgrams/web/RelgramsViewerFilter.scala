@@ -288,15 +288,29 @@ object HtmlHelper{
     //println(loginForm)
     return loginForm
   }
-
+  var exampleURL = "" // "%s:%s/relgrams?arg1=%22xvar+type+person%22&rel=%22die+in%22&arg2=%22type+time+unit%22&sortBy=fs&equalityOption=equality&search=search".format(hostname, port)
+  val usage = <div>
+              <b>Usage:</b> Can be used to find rel-grams whose first tuple matches the fields specified below.
+              <br/>
+              <ul>
+              <li>By default, tuples that contain ANY of the words in the corresponding fields are returned.</li>
+              <li>Use <b>AND</b> between words to find tuples that contain all the specified words.</li>
+              <li>Quotes around words causes the input string to be treated as a phrase.</li>
+              <li>Example: <a href={exampleURL}>Find tuples matching (XVAR:Type:Person, die in, Type:time_unit)</a></li>
+              </ul>
+              <br/>
+              </div>
   def createForm(query:RelgramsQuery): String = {
 
     val arg1 = scrubHTML(query.relationTuple.arg1)
     val rel = scrubHTML(query.relationTuple.rel)
     val arg2 = scrubHTML(query.relationTuple.arg2)
 
+
     var loginForm:String = "<h3>Relgrams Search Interface:</h3><br/><br/>\n"
+    loginForm += usage.toString()
     loginForm += "<form action=\"relgrams\">\n"
+
     //loginForm += "<textarea name=original rows=10 cols=40>" + document + "</textarea><br/>"
     loginForm += "<input name=arg1 value=\"%s\"> Arg1</input><br/>\n".format(arg1)
     loginForm += "<input name=rel value=\"%s\"> Rel</input><br/>\n".format(rel)
