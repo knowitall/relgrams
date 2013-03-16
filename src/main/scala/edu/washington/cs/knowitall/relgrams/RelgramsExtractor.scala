@@ -278,7 +278,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     val secondKey = relgramKey(fa1, outer.relHead, fa2, sa1, inner.relHead, sa2)//relationTupleKey(sa1, inner.relHead, sa2)
 
     if (addedSeconds.contains(secondKey)) {
-      println("Ignoring: " + secondKey)
+      //println("Ignoring: " + secondKey)
       return
     }
     addedSeconds += secondKey
