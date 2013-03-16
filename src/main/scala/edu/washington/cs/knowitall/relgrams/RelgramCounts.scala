@@ -288,7 +288,9 @@ object UndirRelgramCounts{
         out.writeUTF(x.serialize)
       } catch {
         case e:Exception => {
-          println("Failed to persist relgramcounts of size: "  + x.serialize.length)
+          println("Failed to persist undir relgramcounts of size: "  + x.serialize.length)
+          val bicount = if (!x.bitermCounts.isEmpty) x.bitermCounts.values.max else -1
+          println("Failed on: " + x.rgc.prettyString + "\t" + bicount)
           out.writeUTF(DummyUndirRelgramCounts.serialize)
         }
       }
@@ -326,6 +328,8 @@ object Measures{
       }catch {
         case e:Exception => {
           println("Failed to persist measures of size: "  + x.serialize.length)
+          val bicount = if (!x.urgc.bitermCounts.isEmpty) x.urgc.bitermCounts.values.max else -1
+          println("Failed on: " + x.urgc.rgc.prettyString + "\t" + bicount)
           out.writeUTF(DummyMeasures.serialize)
         }
       }
