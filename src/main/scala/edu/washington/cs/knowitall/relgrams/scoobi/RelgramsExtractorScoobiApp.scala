@@ -115,7 +115,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     var maxSize = 5
     var equality = false
     var noequality = false
-
+    var tuplesOnly = false
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
@@ -123,6 +123,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
       opt("maxSize", "max size for id's arg head values etc.", {str => maxSize = str.toInt})
       opt("equality", "Argument equality tuples.", {str => equality = str.toBoolean})
       opt("noequality", "Count tuples without equality.", {str => noequality = str.toBoolean})
+      opt("tuplesOnly", "Tuples extraction only.", {str => tuplesOnly = str.toBoolean})
     }
 
     if (!parser.parse(args)) return
@@ -136,10 +137,11 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     extractRelgramCountsAndTuples(tupleDocuments, maxWindow, equality, noequality) match {
        case Some(extracts:DList[(Map[String, RelgramCounts], Map[String, RelationTuple])]) => {
 
-         val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1), maxSize)
+         if(!tuplesOnly) {
+          val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1), maxSize)
+          exportRelgrams(reducedRelgramCounts, outputPath)
+         }
          val reducedTupleCounts   = reduceTuplesCounts(extracts.map(x => x._2), maxSize)
-
-         exportRelgrams(reducedRelgramCounts, outputPath)
          exportTuples(reducedTupleCounts, outputPath)
 
        }
