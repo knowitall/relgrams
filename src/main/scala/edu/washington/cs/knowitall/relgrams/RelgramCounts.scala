@@ -283,7 +283,16 @@ object UndirRelgramCounts{
   def DummyUndirRelgramCounts = new UndirRelgramCounts(RelgramCounts.DummyRelgramCounts, Map[Int, Int]())
   def serializeCounts(counts:Map[Int, Int]) = RelgramCounts.serializeCounts(counts)
   implicit def UndirRelgramCountsFmt = new WireFormat[UndirRelgramCounts]{
-    override def toWire(x: UndirRelgramCounts, out: DataOutput) {out.writeUTF(x.serialize)}
+    override def toWire(x: UndirRelgramCounts, out: DataOutput) {
+      try{
+        out.writeUTF(x.serialize)
+      } catch {
+        case e:Exception => {
+          println("Failed to persist relgramcounts of size: "  + x.serialize.length)
+          out.writeUTF(DummyUndirRelgramCounts.serialize)
+        }
+      }
+    }
     override def fromWire(in: DataInput): UndirRelgramCounts = UndirRelgramCounts.fromSerializedString(in.readUTF()).getOrElse(DummyUndirRelgramCounts)
   }
 
@@ -311,7 +320,16 @@ object Measures{
   }
   def DummyMeasures = new Measures(UndirRelgramCounts.DummyUndirRelgramCounts, 0, 0)
   implicit def MeasuresFmt = new WireFormat[Measures]{
-    override def toWire(x: Measures, out: DataOutput) {out.writeUTF(x.serialize)}
+    override def toWire(x: Measures, out: DataOutput) {
+      try {
+        out.writeUTF(x.serialize)
+      }catch {
+        case e:Exception => {
+          println("Failed to persist measures of size: "  + x.serialize.length)
+          out.writeUTF(DummyMeasures.serialize)
+        }
+      }
+    }
     override def fromWire(in: DataInput): Measures = Measures.fromSerializedString(in.readUTF()).getOrElse(DummyMeasures)
   }
 
