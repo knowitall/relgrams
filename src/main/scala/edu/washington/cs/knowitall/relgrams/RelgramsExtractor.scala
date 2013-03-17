@@ -97,6 +97,9 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
     var relationTuplesMap = new mutable.HashMap[String, RelationTuple]()
 
+    def printRecord(record:TypedTuplesRecord) = println("%s-%s\t%s\t%s\t%s\t%s\t%s".format(record.sentid, record.extrid, record.arg1Head, record.relHead, record.arg2Head, record.arg1Types, record.arg2Types))
+
+
 
     val prunedRecords:Seq[(TypedTuplesRecord, Int)] = document.tuplesDocument
                                                               .tupleRecords
@@ -104,12 +107,17 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
                                                               .sortBy(r => (r.sentid, r.extrid))
                                                               .zipWithIndex
 
+    //println("********original tuples(********")
+    //document.tuplesDocument.tupleRecords.foreach(printRecord(_))
+    //println("******** pruned tuples **********")
+    //prunedRecords.foreach(r => printRecord(r._1))
+    //println("*******")
     val mentions = document.mentions
     val trimdocument = TuplesDocumentGenerator.trimDocument(document.tuplesDocument)
 
     val sentencesWithOffsets = TuplesDocumentGenerator.sentenceIdsWithOffsets(trimdocument)._2
 
-    def getRecordsIterator = prunedRecords.iterator
+    def getRecordsIterator = prunedRecords.seq
 
     val argRepCache = new mutable.HashMap[(Int, Int), (Set[String], Set[String])]()
     def argRepresentations(record:TypedTuplesRecord) = {
@@ -156,9 +164,20 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
       val outerRelationTuples = recordRelationTuples.get((outer.sentid, outer.extrid)).get
       val addedSeconds = new mutable.HashSet[String]()
 
-      getRecordsIterator.filter(innerIndex => areFromDifferentExtractions(outer, innerIndex._1))
-                        .filter(innerIndex => (innerIndex._2 > oindex) && (innerIndex._2 <= oindex+maxWindow))
-                        .filter(innerIndex => outer.sentid != innerIndex._1.sentid || !subsumes(outer, innerIndex._1))
+      getRecordsIterator.filter(innerIndex => {
+                           val inner = innerIndex._1
+                           val filterVal = areFromDifferentExtractions(outer, innerIndex._1)
+                           filterVal
+                        })
+                        .filter(innerIndex => {
+                            val filterVal = (innerIndex._2 > oindex) && (innerIndex._2 <= oindex+maxWindow)
+                            val inner = innerIndex._1
+                            filterVal
+                        })
+                        .filter(innerIndex => { val inner = innerIndex._1
+                            val filterVal = outer.sentid != innerIndex._1.sentid || !subsumes(outer, innerIndex._1)
+                            filterVal
+                        })
                         .foreach(innerIndex => {
         val iindex = innerIndex._2
         val countWindow = iindex-oindex
@@ -199,7 +218,8 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
         })
       })
     })
-    return (relgramCountsMap.toMap, relationTuplesMap.toMap)
+
+    (relgramCountsMap.toMap, relationTuplesMap.toMap)
 
   }
 

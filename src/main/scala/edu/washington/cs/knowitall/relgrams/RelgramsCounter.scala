@@ -55,10 +55,10 @@ class RelgramsCounter(maxSize:Int) {
       mergeArgCounts(mergeWith, toMerge)
       mergeCounts(mergeWith, toMerge)
       mergeIds(mergeWith, toMerge, maxSize)
-    }/**else{
+    }else{
       println("Not merging1: " + mergeWith)
       println("Not merging2: " + toMerge)
-    }*/
+    }
 
 
   }
