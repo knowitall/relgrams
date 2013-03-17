@@ -263,10 +263,10 @@ object TuplesDocumentWithCorefMentions{
   val logger = LoggerFactory.getLogger(this.getClass)
   def fromString(tdmString: String): Option[TuplesDocumentWithCorefMentions] = {
     val splits = tdmString.split(tdocsep)
-    if (splits.size >= 2){
+    if (splits.size >= 1){
       TuplesDocument.fromString(splits(0)) match {
         case Some(tuplesDocument:TuplesDocument) => {
-          val sentenceOffsets = splits(1).split(",").map(x => x.toInt).toList
+          val sentenceOffsets = if(splits.size > 1) splits(1).split(",").map(x => x.toInt).toList  else List[Int]()
           val mentions = if(splits.size > 2) MentionIO.fromMentionsMapString(splits(2)) else Map[Mention, List[Mention]]()
           Some(new TuplesDocumentWithCorefMentions(tuplesDocument, sentenceOffsets, mentions))
         }
