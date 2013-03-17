@@ -51,13 +51,15 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
   }
 
   def run() {
-    var inputPath, outputPath = ""
-    var fromDocs = false
+    var inputPath, mentionsPath, outputPath = ""
+    var fromDocs, mergeMentions = false
     var corefTimeoutMs = 1000 * 30 //30 seconds.
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
+      arg("mentionsPath", "hdfs mentions path", {str => mentionsPath = str})
       arg("outputPath", "hdfs output path", { str => outputPath = str })
       opt("fromDocs", "from serialized tuple documents?", { str => fromDocs = str.toBoolean})
+      opt("mergeMentions", "merge mentions", { str => mergeMentions = str.toBoolean})
       opt("corefTimeoutMs", "coref time out in milli-seconds.", { str => corefTimeoutMs = str.toInt})
     }
 
@@ -74,7 +76,33 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
                                               .groupBy(record => record.docid)
                                               .map(x => tgen.getPrunedDocument(x._1, x._2.toSeq))
       export(tupledocuments, outputPath)
-    }else if (fromDocs) {
+    }else if(fromDocs && mergeMentions){
+
+      val mentionDocuments: DList[(String, TuplesDocumentWithCorefMentions)] = TextInput.fromTextFile(mentionsPath)
+                                      .flatMap(line => TuplesDocumentWithCorefMentions.fromString(line) match {
+        case Some(y:TuplesDocumentWithCorefMentions) => {
+          val x = y.tuplesDocument
+          if(x.tupleRecords.size <= 100) Some(y) else {
+            println("Ignoring document: %s with size %d".format(x.docid, x.tupleRecords.size))
+            None
+          }
+        }
+        case None => None
+      }).map(md => (md.tuplesDocument.docid, md))
+
+      val tupleDocuments = TextInput.fromTextFile(inputPath)
+                                    .flatMap(line => TuplesDocument.fromString(line))
+                                    .map(td => (td.docid, td))
+
+      import com.nicta.scoobi.lib.Relational._
+      val grouped = coGroup(tupleDocuments, mentionDocuments)
+      grouped.map(group => {
+        val tds = group._2._1.head
+        val mds = group._2._2.head
+        Some(new TuplesDocumentWithCorefMentions(tds, mds.sentenceOffsets, mds.mentions))
+      })
+
+    } else if (fromDocs) {
       println("Building TupleDocumentsWithCorefMentions.")
       applogger.info("Building TupleDocumentsWithCorefMentions.")
 

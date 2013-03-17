@@ -113,10 +113,12 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     //prunedRecords.foreach(r => printRecord(r._1))
     //println("*******")
     val mentions = document.mentions
+    val sentencesWithOffsets = if(equality){
     val trimdocument = TuplesDocumentGenerator.trimDocument(document.tuplesDocument)
-
-    val sentencesWithOffsets = TuplesDocumentGenerator.sentenceIdsWithOffsets(trimdocument)._2
-
+      TuplesDocumentGenerator.sentenceIdsWithOffsets(trimdocument)._2
+    }else{
+      mutable.Map[Int, Int]()
+    }
     def getRecordsIterator = prunedRecords.seq
 
     val argRepCache = new mutable.HashMap[(Int, Int), (Set[String], Set[String])]()
@@ -160,7 +162,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
       val outer = outerIndex._1
       val oindex = outerIndex._2
-      val outerStartOffset = startingOffset(outer)
+      val outerStartOffset = if(equality) startingOffset(outer) else 0
       val outerRelationTuples = recordRelationTuples.get((outer.sentid, outer.extrid)).get
       val addedSeconds = new mutable.HashSet[String]()
 
@@ -182,9 +184,10 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
         val iindex = innerIndex._2
         val countWindow = iindex-oindex
         val inner = innerIndex._1
-        val innerStartOffset = startingOffset(inner)
+
         val corefArgs:Option[(String, String, String, String)] = equality match {
           case true => {
+            val innerStartOffset = startingOffset(inner)
             CoreferringArguments.coreferringArgs(outer, outerStartOffset, inner, innerStartOffset, prunedMentions)
           }
           case false => None
