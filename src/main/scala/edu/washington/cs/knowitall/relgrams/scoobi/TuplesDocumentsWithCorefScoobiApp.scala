@@ -97,9 +97,16 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
       import com.nicta.scoobi.lib.Relational._
       val grouped = coGroup(tupleDocuments, mentionDocuments)
       val merged = grouped.flatMap(group => {
-                      val tds = group._2._1.head
-                      val mds = group._2._2.head
-                      Some(new TuplesDocumentWithCorefMentions(tds, mds.sentenceOffsets, mds.mentions))
+                      (group._2._1.headOption, group._2._2.headOption) match {
+                        case (Some(tds:TuplesDocument), Some(mds:TuplesDocumentWithCorefMentions)) => {
+                          Some(new TuplesDocumentWithCorefMentions(tds, mds.sentenceOffsets, mds.mentions))
+                        }
+                        case _ => {
+                          println("Failed on group: " + group._1)
+                          None
+                        }
+                      }
+
                    })
       exportWithCorefs(merged, outputPath)
 
