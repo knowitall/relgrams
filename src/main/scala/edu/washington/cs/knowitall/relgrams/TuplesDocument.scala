@@ -8,6 +8,7 @@ import collection.mutable
 import org.slf4j.LoggerFactory
 import com.nicta.scoobi.core.WireFormat
 import java.io.{StringWriter, DataInput, DataOutput}
+import utils.StringUtils
 
 
 /**
@@ -283,12 +284,29 @@ object TuplesDocumentWithCorefMentions{
 
   val tdocsep = "_TDOC_SEP_"
 
+  val numParts = 10
   implicit def TuplesDocumentWithCorefMentionsFmt = new WireFormat[TuplesDocumentWithCorefMentions]{
-    def toWire(x: TuplesDocumentWithCorefMentions, out: DataOutput){out.writeUTF(x.toString)}
+    def toWire(x: TuplesDocumentWithCorefMentions, out: DataOutput){
+      //out.writeUTF(x.toString)
+      val outstr = x.toString
+      try{
+        val parts = StringUtils.splitIntoNPlusOneParts(outstr, numParts)
+        parts.foreach(out.writeUTF(_))
+      }catch{
+        case e:Exception => {
+          println("Skipping document: " + x.tuplesDocument.docid + " with length: " + outstr.size)
+        }
+      }
+    }
     def fromWire(in: DataInput): TuplesDocumentWithCorefMentions = {
-      TuplesDocumentWithCorefMentions.fromString(in.readUTF()).get
+      //TuplesDocumentWithCorefMentions.fromString(in.readUTF()).get
+      val parts = (0 until numParts+1).map(i => in.readUTF())
+      val instr = parts.mkString("").trim
+      TuplesDocumentWithCorefMentions.fromString(instr).get
     }
   }
+
+
 
 }
 object MentionIO{
@@ -363,9 +381,25 @@ object TuplesDocument{
       None
     }
   }
+
+  val numParts = 10
   implicit def TuplesDocumentFmt = new WireFormat[TuplesDocument]{
-    def toWire(x: TuplesDocument, out: DataOutput) {out.writeUTF(x.toString())}
-    def fromWire(in: DataInput): TuplesDocument = {TuplesDocument.fromString(in.readUTF()).get}
+    def toWire(x: TuplesDocument, out: DataOutput) {
+      val outstr = x.toString()
+      try{
+        val parts = StringUtils.splitIntoNPlusOneParts(outstr, numParts)
+        parts.foreach(out.writeUTF(_))
+      }catch{
+        case e:Exception => {
+          println("Skipping document: " + x.docid + " with length: " + outstr.size)
+        }
+      }
+    }
+    def fromWire(in: DataInput): TuplesDocument = {//TuplesDocument.fromString(in.readUTF()).get
+      val parts = (0 until numParts+1).map(i => in.readUTF())
+      val instr = parts.mkString("").trim
+      TuplesDocument.fromString(instr).get
+    }
   }
 }
 
