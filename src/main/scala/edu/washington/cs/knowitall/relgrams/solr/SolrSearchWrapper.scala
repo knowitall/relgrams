@@ -27,7 +27,7 @@ class SolrSearchWrapper(solrBaseUrl:String) {
   def toSolrQuery(query:RelgramsQuery):Option[SolrQuery] = {
     val solrQuery = new SolrQuery()
     solrQuery.setQuery("*:*")
-    solrQuery.setRows(100000)
+    solrQuery.setRows(10000000)
     def isEmpty(string:String) = string.isEmpty
 
     if (!isEmpty(query.relationTuple.arg1)) solrQuery.addFilterQuery("farg1:" + query.relationTuple.arg1)

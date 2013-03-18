@@ -349,19 +349,19 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   def search(query: RelgramsQuery):(String, Seq[(Measures, AffinityMeasures)]) = (query.toHTMLString, solrManager.search(query))
 
-  val cssold = "<script>table.soft {\n\tborder-spacing: 0px;}\n.soft th, .soft td {\n\tpadding: 5px 30px 5px 10px;\n\tborder-spacing: 0px;\n\tfont-size: 90%;\n\tmargin: 0px;}\n.soft th, .soft td {\n\ttext-align: left;\n\tbackground-color: #e0e9f0;\n\tborder-top: 1px solid #f1f8fe;\n\tborder-bottom: 1px solid #cbd2d8;\n\tborder-right: 1px solid #cbd2d8;}\n.soft tr.head th {\n\tcolor: #fff;\n\tbackground-color: #90b4d6;\n\tborder-bottom: 2px solid #547ca0;\n\tborder-right: 1px solid #749abe;\n\tborder-top: 1px solid #90b4d6;\n\ttext-align: center;\n\ttext-shadow: -1px -1px 1px #666666;\n\tletter-spacing: 0.15em;}\n.soft td {\n\ttext-shadow: 1px 1px 1px #ffffff;}\n.soft tr.even td, .soft tr.even th {\n\tbackground-color: #3E698E;}\n.soft tr.head th:first-child {\n\t-webkit-border-top-left-radius: 5px;\n\t-moz-border-radius-topleft: 5px;\n\tborder-top-left-radius: 5px;}\n.soft tr.head th:last-child {\n\t-webkit-border-top-right-radius: 5px;\n\t-moz-border-radius-topright: 5px;\n\tborder-top-right-radius: 5px;}</script>"
-  val css ="<script type=\"text/css\">/* financial or timetable */\n\nbody {\n\tfont-family: Arial, Verdana, sans-serif;\n\tcolor: #111111;}\n\ntable.financial {\n\twidth: 600px;}\n\n.financial th, .financial td {\n\tpadding: 7px 10px 10px 10px;}\n\n.financial th {\n\ttext-transform: uppercase;\n\tletter-spacing: 0.1em;\n\tfont-size: 90%;\n\tborder-bottom: 2px solid #111111;\n\tborder-top: 1px solid #999;\n\ttext-align: left;}\n\n.financial tr.even {\n\tbackground-color: #efefef;}\n\n.financial tr:hover {\n\tbackground-color: #c3e6e5;}\n\n.financial tfoot td {\n\tborder-top: 2px solid #111111;\n\tborder-bottom: 1px solid #999;}\n\n.money {\n\ttext-align: right;}</script>"
+  val cssSoft = "<style type=\"text/css\">table.soft {\n\tborder-spacing: 0px;}\n.soft th, .soft td {\n\tpadding: 5px 30px 5px 10px;\n\tborder-spacing: 0px;\n\tfont-size: 90%;\n\tmargin: 0px;}\n.soft th, .soft td {\n\ttext-align: left;\n\tbackground-color: #e0e9f0;\n\tborder-top: 1px solid #f1f8fe;\n\tborder-bottom: 1px solid #cbd2d8;\n\tborder-right: 1px solid #cbd2d8;}\n.soft tr.head th {\n\tcolor: #fff;\n\tbackground-color: #90b4d6;\n\tborder-bottom: 2px solid #547ca0;\n\tborder-right: 1px solid #749abe;\n\tborder-top: 1px solid #90b4d6;\n\ttext-align: center;\n\ttext-shadow: -1px -1px 1px #666666;\n\tletter-spacing: 0.15em;}\n.soft td {\n\ttext-shadow: 1px 1px 1px #ffffff;}\n.soft tr.even td, .soft tr.even th {\n\tbackground-color: #3E698E;}\n.soft tr.head th:first-child {\n\t-webkit-border-top-left-radius: 5px;\n\t-moz-border-radius-topleft: 5px;\n\tborder-top-left-radius: 5px;}\n.soft tr.head th:last-child {\n\t-webkit-border-top-right-radius: 5px;\n\t-moz-border-radius-topright: 5px;\n\tborder-top-right-radius: 5px;}</style>"
+  val cssFinancial ="<style type=\"text/css\">/* financial or timetable */\n\nbody {\n\tfont-family: Arial, Verdana, sans-serif;\n\tcolor: #111111;}\n\ntable.financial {\n\twidth: 1200px;}\n\n.financial th, .financial td {\n\tpadding: 7px 10px 10px 10px;}\n\n.financial th {\n\ttext-transform: uppercase;\n\tletter-spacing: 0.1em;\n\tfont-size: 90%;\n\tborder-bottom: 2px solid #111111;\n\tborder-top: 1px solid #999;\n\ttext-align: left;}\n\n.financial tr.even {\n\tbackground-color: #efefef;}\n\n.financial tr:hover {\n\tbackground-color: #c3e6e5;}\n\n.financial tfoot td {\n\tborder-top: 2px solid #111111;\n\tborder-bottom: 1px solid #999;}\n\n.money {\n\ttext-align: right;}</style>"
   val tableTags = "<table class=\"financial\">\n%s\n</table>\n"
   //def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("Measure", "#(F,S)", "#(S,F)", "#(F,*)", "#(S,*)")
 
   def headerRow(measure:MeasureName.MeasureName) = {
     val headElem = <thead>
       <tr>
-      <td>First Arg1</td><td><b>First Rel</b></td><td><b>First Arg2</b></td>
-      <td/><td/>
-      <td><b>Second Arg1</b></td><td><b>Second Rel</b></td><td><b>Second Arg2</b></td>
-      <td/><td/>
-      <td><b>P(S|F)</b></td><td><b>#(F,S)</b></td><td><b>#(S,F)</b></td><td><b>#F</b></td><td><b>#S</b></td>
+      <th>First Arg1</th><th>First Rel</th><th>First Arg2</th>
+      <th class=""/><th class=""/>
+      <th>Second Arg1</th><th>Second Rel</th><th>Second Arg2</th>
+      <th class=""/><th class=""/>
+      <th>P(S|F)</th><th>#(F,S)</th><th>#(S,F)</th><th>#F</th><th>#S</th>
       </tr>
     </thead>
     headElem.toString
@@ -415,9 +415,9 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     }
     val arg1Style = argStyle(tuple.arg1)
     val arg2Style = argStyle(tuple.arg2)
-     <td><span style={arg1Style} TITLE={arg1TopArgs}>{arg1}</span></td>
+     <td TITLE={arg1TopArgs}><span style={arg1Style}>{arg1}</span></td>
      <td><span style={relstyle}>{rel}</span></td>
-     <td><span style={arg2Style} TITLE={arg2TopArgs}>{arg2}</span></td>
+     <td TITLE={arg2TopArgs}><span style={arg2Style}>{arg2}</span></td>
 
 
   }
@@ -432,26 +432,26 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     var farg1Counts: mutable.Map[String, Int] = rgc.argCounts.firstArg1Counts
     var farg2Counts: mutable.Map[String, Int] = rgc.argCounts.firstArg2Counts
 
-    var tfarg1Counts = farg1Counts.filter(x => farg2Counts.contains(x._1))
+    var tfarg1Counts = farg1Counts.filter(x => !farg2Counts.contains(x._1))
     if(tfarg1Counts.isEmpty) tfarg1Counts = farg1Counts
 
-    var tfarg2Counts = farg2Counts.filter(x => farg1Counts.contains(x._1))
+    var tfarg2Counts = farg2Counts.filter(x => !farg1Counts.contains(x._1))
     if(tfarg2Counts.isEmpty) tfarg2Counts = farg2Counts
 
 
     var sarg1Counts: mutable.Map[String, Int] = rgc.argCounts.secondArg1Counts
     var sarg2Counts: mutable.Map[String, Int] = rgc.argCounts.secondArg2Counts
 
-    var tsarg1Counts = sarg1Counts.filter(x => sarg2Counts.contains(x._1))
+    var tsarg1Counts = sarg1Counts.filter(x => !sarg2Counts.contains(x._1))
     if(tsarg1Counts.isEmpty) tsarg1Counts = sarg1Counts
 
-    var tsarg2Counts = sarg2Counts.filter(x => sarg1Counts.contains(x._1))
+    var tsarg2Counts = sarg2Counts.filter(x => !sarg1Counts.contains(x._1))
     if(tsarg2Counts.isEmpty) tsarg2Counts = sarg2Counts
 
     val evenString = if(even) "even" else ""
     <tr class={evenString}>
-      {relationWithRelArgs(rgc.relgram.first, tfarg1Counts, tfarg2Counts)}<td/><td/>
-      {relationWithRelArgs(rgc.relgram.second, tsarg1Counts, tsarg2Counts)}<td/><td/>
+      {relationWithRelArgs(rgc.relgram.first, tfarg1Counts, tfarg2Counts)}<td class=""/><td class=""/>
+      {relationWithRelArgs(rgc.relgram.second, tsarg1Counts, tsarg2Counts)}<td class=""/><td class=""/>
       <td>{measureVal}</td>
       <td>{fscount}</td>
       <td>{sfcount}</td>
@@ -504,7 +504,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   def renderSearchResults(measureName:String, query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
     var even = false
-    css + wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n" +
+    cssSoft + cssFinancial + wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n<tbody>" +
                          results._2.filter(ma => !isIdentityRelgram(ma._1.urgc.rgc.relgram))
                                    .filter(ma => aboveThreshold(ma._1.urgc))
                                    .filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
@@ -513,7 +513,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
                                    .map(ma => {
                            even = !even
                            toResultsRow(measureName, query, ma._1, ma._2, even)
-                         }).mkString("\n"))
+                         }).mkString("\n") + "</tbody>")
   }
 
 
