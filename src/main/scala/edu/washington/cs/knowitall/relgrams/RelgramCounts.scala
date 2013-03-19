@@ -240,7 +240,10 @@ object RelgramCounts{
 
   def serializeCounts(counts:Map[Int, Int]) = MapUtils.toIntIntCountsString(counts)
   def deserializeCounts(countsString:String) = try{
-    MapUtils.IntIntMutableMapfromCountsString(countsString)
+    if(countsString.size > 0)
+      MapUtils.IntIntMutableMapfromCountsString(countsString)
+    else
+     new mutable.HashMap[Int, Int]()
   }catch{
     case e:Exception => {
       println("Failed to extract IntInt map from string: " + countsString)

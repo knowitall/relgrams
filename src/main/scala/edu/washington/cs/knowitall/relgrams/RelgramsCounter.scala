@@ -55,26 +55,33 @@ class RelgramsCounter(maxSize:Int) {
       mergeArgCounts(mergeWith, toMerge)
       mergeCounts(mergeWith, toMerge)
       mergeIds(mergeWith, toMerge, maxSize)
-    }
+    }/**else{
+      println("Ignoring toMerge: " + toMerge)
+      println("For mergeWith: " + mergeWith)
+      println
+      println
+    }*/
 
 
   }
   def reduceRelgramCounts(rgcs:Iterable[RelgramCounts]) = {
     var outRGC:RelgramCounts = null
-    rgcs.toSeq.filter(rgc => {
-      val filterVal = !RelgramCounts.isDummy(rgc)
-      if(filterVal == false){
-        println("Ignoring dummy rgc: " + rgc)
-      }
-      filterVal
-    }).foreach(rgc => {
+
+    rgcs.toSeq
+        .filter(rgc => !RelgramCounts.isDummy(rgc))
+        .foreach(rgc => {
       if (outRGC == null){
         outRGC = rgc
       }else{
         merge(outRGC, rgc)
       }
     })
-    //println("outrgc: " + outRGC.prettyString)
+
+    outRGC.relgram.first.hashes = Set[Int]()
+    outRGC.relgram.second.hashes = Set[Int]()
+    outRGC.relgram.first.sentences = Set[String]()
+    outRGC.relgram.second.sentences = Set[String]()
+
     if(outRGC != null) Some(outRGC) else None
   }
 

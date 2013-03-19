@@ -92,6 +92,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
   def isTypedTuple(tuple:RelationTuple) = tuple.arg1.startsWith("Type:") || tuple.arg2.startsWith("Type:")
 
   def extractRelgramsFromDocument(document:TuplesDocumentWithCorefMentions): (Map[String, RelgramCounts], Map[String, RelationTuple]) = {
+
     //val docid = document.tuplesDocument.docid
 
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
@@ -99,13 +100,23 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
     def printRecord(record:TypedTuplesRecord) = println("%s-%s\t%s\t%s\t%s\t%s\t%s".format(record.sentid, record.extrid, record.arg1Head, record.relHead, record.arg2Head, record.arg1Types, record.arg2Types))
 
+    def assignIndex(records:Seq[TypedTuplesRecord]) = {
+      var index = 0
+      var prevSentId = 0
+      var prevExtrId = 0
+      records.map(record => {
+        if (record.sentid > prevSentId || record.extrid > prevSentId) index = index + 1
+        prevSentId = record.sentid
+        prevExtrId = record.extrid
+        (record, index)
+      })
+    }
+    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = assignIndex(document.tuplesDocument.tupleRecords)
 
-
-    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = document.tuplesDocument
-                                                              .tupleRecords
                                                               //.filter(record => notInferredPrepRelation(record))
-                                                              .sortBy(r => (r.sentid, r.extrid))
-                                                              .zipWithIndex
+                                                              //.sortBy(r => (r.sentid, r.extrid))
+
+                                                              //.zipWithIndex
 
     //println("********original tuples(********")
     //document.tuplesDocument.tupleRecords.foreach(printRecord(_))
@@ -202,8 +213,9 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
           noequality match {
             case true => {
               val relKey = relgramKey(first, second)
-              //if(relKey.contains("be set leave")) println("Rel key: %s\tsecond: %s".format(relKey, second))
               if (!addedSeconds.contains(relKey)) {
+                //val sentWindow = (inner.sentid - outer.sentid)
+                //println("Adding relgrams with countWindow: " + countWindow + " and from sentences: " + inner.sentid + " and " + outer.sentid + " sent window: " + sentWindow)
                 addToRelgramCounts(outer, inner, first, second, countWindow, relgramCountsMap)
               }
               addedSeconds += relKey
@@ -226,20 +238,6 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
   }
 
-  def distribute(rgcMap: Map[String, RelgramCounts]) = {
-    def distributeCounts(counts:mutable.Map[Int, Int]) {
-      val minOccurrenceWindow = counts.filter(kv => kv._2 > 0).map(kv => kv._1).min
-      (1 until maxWindow).map(window => {
-        if (window >= minOccurrenceWindow){
-          counts += window -> 1
-        }else {
-          counts -= window
-        }
-      })
-    }
-    rgcMap.values.foreach(rgc => distributeCounts(rgc.counts))
-    rgcMap
-  }
 
   def addToRelgramCounts(outer:TypedTuplesRecord, inner:TypedTuplesRecord,
                          first:RelationTuple, second:RelationTuple,

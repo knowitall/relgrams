@@ -16,7 +16,7 @@ import edu.washington.cs.knowitall.relgrams.utils.MapUtils
 import com.nicta.scoobi.Persist._
 import scopt.mutable.OptionParser
 import io.Source
-import collection.immutable
+import collection.{mutable, immutable}
 import java.io.{File, PrintWriter}
 import scopt.mutable.OptionParser
 import scala.Some
@@ -55,14 +55,29 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
   def toUndirRelgramCounts(rgcs: Iterable[RelgramCounts]) = {
     val seq = rgcs.toSeq
     val ab = seq(0)
-    if (seq.size == 2){
+
+    def flip(ab:RelgramCounts): RelgramCounts = {
+
+      def flipRelgram(relgram:Relgram): Relgram = new Relgram(relgram.second, relgram.first)
+      def flipArgCounts(argCounts:ArgCounts):ArgCounts = new ArgCounts(argCounts.secondArg1Counts, argCounts.secondArg2Counts,
+                                                              argCounts.firstArg1Counts, argCounts.firstArg2Counts)
+
+      val orelgram = flipRelgram(ab.relgram)
+      val oargCounts = flipArgCounts(ab.argCounts)
+      new RelgramCounts(orelgram, new mutable.HashMap[Int, Int](), oargCounts)
+
+    }
+    if (seq.size >= 2){
+      if (seq.size > 2) println("Duplicate relgrams: " + seq.mkString("\n"))
       val ba = seq(1)
       val bitermCounts = MapUtils.combine(ab.counts, ba.counts)
       new UndirRelgramCounts(ab, bitermCounts)::new UndirRelgramCounts(ba, bitermCounts)::Nil
     }else{
-      new UndirRelgramCounts(ab, ab.counts)::Nil
+      //println("Seq size < 2: " + ab.toString)
+      val ba = flip(ab)
+      val bitermCounts = ab.counts.map(x => x).toMap
+      new UndirRelgramCounts(ab, bitermCounts)::new UndirRelgramCounts(ba, bitermCounts)::Nil
     }
-
   }
 
   def toUndirRelgramCounts(relgramCounts: DList[RelgramCounts]):DList[UndirRelgramCounts] = {
@@ -161,11 +176,10 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
     }
     //NOTE filtering out relgrams that do not occur at least five times with each other.
     val undirCounts = toUndirRelgramCounts(relgramCounts).filter(urgc => aboveThreshold(urgc))
-
     val tupleCounts = loadRelationTupleCounts(tuplesPath)
     val measures = computeMeasures(undirCounts, tupleCounts)
     exportMeasures(measures, outputPath)
-    exportUndirCounts(undirCounts, outputPath)
+    //exportUndirCounts(undirCounts, outputPath)
   }
 }
 

@@ -23,7 +23,6 @@ object MapUtils {
       sum = sum + counts.getOrElse(window, 0)
       counts += window -> sum
     })
-
   }
 
 
@@ -38,7 +37,6 @@ object MapUtils {
 
   val esep = "_ESEP_"
   val csep = "_CSEP_"
-
 
   def IntIntMutableMapfromCountsString(countsString: String) = {
     val mutableMap = new mutable.HashMap[Int, Int]()
@@ -100,6 +98,7 @@ object MapUtils {
     updateCounts(cmap, 1, 0)
     updateCounts(cmap, 10, 1)
     updateCounts(cmap, 20, 1)
+    updateCounts(cmap, 30, 2)
     distributeCounts(cmap, 50)
     println("Map:%s".format(toIntIntCountsString(cmap)))
   }
