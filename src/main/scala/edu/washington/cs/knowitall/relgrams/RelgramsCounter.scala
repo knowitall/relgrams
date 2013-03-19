@@ -10,6 +10,8 @@ import utils.MapUtils
  * To change this template use File | Settings | File Templates.
  */
 class RelgramsCounter(maxSize:Int) {
+  def combineTupleCounts(a: RelationTupleCounts, b: RelationTupleCounts):RelationTupleCounts = reduceTuples(new R::b::Nil).get
+
 
   def combineRelgramCounts(a: RelgramCounts, b: RelgramCounts):RelgramCounts = reduce(a::b::Nil)
 
@@ -94,9 +96,10 @@ class RelgramsCounter(maxSize:Int) {
 
 
   def reduceTuples(tuples: Iterable[RelationTuple]) = {
+    var seq = tuples.seq
     var outTuple:RelationTuple = null
     var count = 0
-    tuples.filter(tuple => !isDummyTuple(tuple)).foreach(tuple =>{
+    seq.filter(tuple => !isDummyTuple(tuple)).foreach(tuple =>{
       if (outTuple == null)
         outTuple = tuple
       else

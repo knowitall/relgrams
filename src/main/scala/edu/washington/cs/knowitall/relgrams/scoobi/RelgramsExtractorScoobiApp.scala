@@ -76,6 +76,31 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     def rgcsCombine(x:RelgramCounts, y:RelgramCounts) = counter.combineRelgramCounts(x, y)
     rgcs.flatten.groupByKey[String, RelgramCounts].combine[String, RelgramCounts](rgcsCombine)
   }
+
+  def combineTuples(tupleCounts:DList[Map[String, RelationTuple]]){
+    def tuplesCombine(x:RelationTupleCounts, y:RelationTupleCounts) = counter.combineTupleCounts(x, y)
+    tupleCounts.flatten.map(x => (x._1, new RelationTupleCounts(x._2, 1))).groupByKey[String, RelationTupleCounts].combine[String, RelationTupleCounts](tuplesCombine)
+  }
+
+  def extractRelgramCountsAndTuplesWithCombiner(tuplesDocuments: DList[TuplesDocumentWithCorefMentions],
+                                    maxWindow:Int,
+                                    equality:Boolean,
+                                    noequality:Boolean): Option[DList[(Map[String, RelgramCounts], Map[String, RelationTuple])]] ={
+
+    import TuplesDocumentWithCorefMentions._
+    import RelgramCounts._
+    import RelationTuple._
+    val counter = new RelgramsCounter(maxSize=5)
+    val relgrams: DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] = tuplesDocuments.map(document => {
+      val extractor = new RelgramsExtractor(maxWindow, equality, noequality)
+      val rgs = extractor.extractRelgramsFromDocument(document)
+      rgs
+    })
+    val combinedRelgrams = combineRelgramCounts(relgrams.map(x => x._1))
+    val combinedTuples = combineTuples(relgrams.map(x => x._2))
+    Some(relgrams)
+  }
+
   def extractRelgramCountsAndTuples(tuplesDocuments: DList[TuplesDocumentWithCorefMentions],
                                     maxWindow:Int,
                                     equality:Boolean,
