@@ -72,6 +72,10 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     }
   }
 
+  def combineRelgramCounts(rgcs:DList[Map[String, RelgramCounts]]){
+    def rgcsCombine(x:RelgramCounts, y:RelgramCounts) = counter.combineRelgramCounts(x, y)
+    rgcs.flatten.groupByKey[String, RelgramCounts].combine[String, RelgramCounts](rgcsCombine)
+  }
   def extractRelgramCountsAndTuples(tuplesDocuments: DList[TuplesDocumentWithCorefMentions],
                                     maxWindow:Int,
                                     equality:Boolean,
@@ -80,6 +84,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     import TuplesDocumentWithCorefMentions._
     import RelgramCounts._
     import RelationTuple._
+    val counter = new RelgramsCounter(maxSize=5)
     val relgrams: DList[(Map[String, RelgramCounts], Map[String, RelationTuple])] = tuplesDocuments.map(document => {
       val extractor = new RelgramsExtractor(maxWindow, equality, noequality)
       val rgs = extractor.extractRelgramsFromDocument(document)
