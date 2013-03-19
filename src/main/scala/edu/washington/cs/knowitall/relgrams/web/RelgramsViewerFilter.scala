@@ -175,9 +175,9 @@ object HtmlHelper{
     var typedEqualitySelected = ""
     var typedNoEqualitySelected = ""
     query.equalityOption match {
-      case "typeequality" => typedEqualitySelected = "checked"
+      //case "typeequality" => typedEqualitySelected = "checked"
       case "equality" => equalitySelected = "checked"
-      case "typednoequality" => typedNoEqualitySelected = "checked"
+      //case "typednoequality" => typedNoEqualitySelected = "checked"
       case "noequality" => noequalitySelected = "checked"
       case "both" => {equalitySelected = "checked"; noequalitySelected = "checked"}
       case _ => {equalitySelected = "checked"; noequalitySelected = "checked"}
@@ -185,14 +185,10 @@ object HtmlHelper{
     //<input type="checkbox" name="equalityOption" value="typedequality" checked={typedEqualitySelected}>Typed Equality [At least one arg must be typed]</input>
     //<input type="checkbox" name="equalityOption" value="noequality" checked={typedNoEqualitySelected}>Typed but no Equality [At least one arg must be typed]</input>
     //<br/>
-    val inputs = <span>
-                    <input type="checkbox" name="equalityOption" value="equality" checked={equalitySelected}>Equality [Display rel-grams with equality constraints.]</input>
-                    <input type="checkbox" name="equalityOption" value="noequality" checked={noequalitySelected}>No Equality [Display rel-grams without equality constraints.]</input>
+    val inputs = """<input type="checkbox" name="equalityOption" value="equality" %s>Show rel-grams with equality constraints.</span></input>
                     <br/>
-                    <!--input type="checkbox" name="equalityOption" value="typedequality" checked={typedEqualitySelected}>Typed Equality [At least one arg must be typed]</input-->
-                    <!--input type="checkbox" name="equalityOption" value="noequality" checked={typedNoEqualitySelected}>Typed but no Equality [At least one arg must be typed]</input-->
-                    <br/>
-                </span>
+                   <input type="checkbox" name="equalityOption" value="noequality" %s>Show rel-grams without equality constraints.</span></input>
+                 """.format(equalitySelected, noequalitySelected)
     inputs.toString
   }
 
@@ -220,7 +216,7 @@ object HtmlHelper{
     optionString("sf", sfSelected, "#(S,F)") +
     optionString("f", fSelected, "#F") +
     optionString("s", sSelected, "#S") +
-    "</select> Sort By<br/><br/><br/>\n"
+    "</select> Sort By\n"
 
   }
   def mesureIndexOptions(query: RelgramsQuery): String = {
@@ -250,59 +246,19 @@ object HtmlHelper{
     escapeHtml(string)
   }
 
-  def createXMLForm(query:RelgramsQuery): String = {
-
-    //def scrubHTML(text:String) =
-
-   /** val arg1 = query.relationTuple.arg1
-    val rel = query.relationTuple.rel
-    val arg2 = query.relationTuple.arg2
-    val title = "Relgrams Search Interface:"
-    val formName = "relgrams"
-
-    <h3>{title}</h3>
-    <form action={formName}>
-      <input name="arg1" value={arg1}>"Arg1"</input>
-      <input name="rel" value={rel}>"Rel"</input>
-      <input name="arg1" value={arg2}>"Arg2"</input>
-      sortByElem
-    </form>*/
-
-    var loginForm:String = "<h3>Relgrams Search Interface:</h3><br/><br/>\n"
-    loginForm += "<form action=\"relgrams\">\n"
-    //loginForm += "<textarea name=original rows=10 cols=40>" + document + "</textarea><br/>"
-    loginForm += "<input name=arg1 value=\"%s\"> Arg1</input><br/>\n".format(query.relationTuple.arg1)
-    loginForm += "<input name=rel value=\"%s\"> Rel</input><br/>\n".format(query.relationTuple.rel)
-    loginForm += "<input name=arg2 value=\"%s\"> Arg2</input><br/>\n".format(query.relationTuple.arg2)
-    loginForm += "<br/>"
-    loginForm += sortByOptions(query)
-
-    loginForm += equalityCheckBoxes(query).toString//equalityOptions(query)
-    /**loginForm += viewOptions(query)
-    loginForm += measureOptions(query)
-    loginForm += mesureIndexOptions(query)
-
-    loginForm += alphaBox(query, 0.5)
-    loginForm += deltaBox(query, 10)
-      */
-    loginForm += "<input name=search type=\"submit\" value=\"search\"/>\n"//<span style="padding-left:300px"></span>
-    loginForm += "</form>\n"
-    //println(loginForm)
-    return loginForm
-  }
-
-  def usage(exampleURL1:String, exampleURL2:String) = <div>
+  def usage(exampleURL1:String, exampleURL2:String, exampleURL3:String) = <span style="font-size: 12">
               <b>Usage:</b> Can be used to find rel-grams whose first tuple matches the fields specified below.
               <br/>
-              <ul>
-              <li>By default, tuples that contain ANY of the words in the corresponding fields are returned.</li>
-              <li>Use <b>AND</b> between words to find tuples that contain all the specified words.</li>
-              <li>Quotes around words causes the input string to be treated as a phrase.</li>
-              <li>Example 1: <a href={exampleURL1}>(X:[person], die in, [time_unit])</a></li>
-              <li>Example 2: <a href={exampleURL2}>([organization], file, *)</a></li>
-              </ul>
+              <b>Querying:</b><br/>
+              <span>a) By default, tuples that contain ANY of the words in the corresponding fields are returned.</span>
+              <!--li>Use <i>AND</i> between words to find tuples that contain all the specified words.</li-->
+              <span>b) Quotes around words causes the input string to be treated as a phrase.</span><br/>
+              <span>c) Prepositions in relaion strings are ignored for search purposes -- To be fixed.</span><br/>
+              <b>Examples:</b> <a href={exampleURL1}>(X:[person], arrest, )</a>
+              <a href={exampleURL2}>([person], graduate, )</a>
+              <a href={exampleURL3}>(,pitch,)</a>
               <br/>
-              </div>
+              </span>
   def createForm(query:RelgramsQuery, host:String, port:Int): String = {
 
     //val exampleURL = """http://%s:%s/relgrams?arg1="xvar+type+person"&rel="die+in"&arg2="type+time+unit"&sortBy=fs&equalityOption=equality&search=search""".format(host, port)
@@ -310,19 +266,22 @@ object HtmlHelper{
     val rel = scrubHTML(query.relationTuple.rel)
     val arg2 = scrubHTML(query.relationTuple.arg2)
 
-    val exampleURL1 = """http://rv-n15.cs.washington.edu:25000/relgrams?arg1=study&rel=published+in&arg2=&sortBy=fs&equalityOption=equality&equalityOption=noequality&search=search"""
-    val exampleURL2 = """"""
-    var loginForm:String = "<h3>Relgrams Search Interface:</h3><br/><br/>\n"
-    loginForm += usage(exampleURL1, exampleURL2)
+    val exampleURL1 = """http://rv-n15.cs.washington.edu:25000/relgrams?arg1=%22xvar+type+person%22&rel=arrest&arg2=&sortBy=fs&equalityOption=equality&search=search"""//"""http://rv-n15.cs.washington.edu:25000/relgrams?arg1=study&rel=published+in&arg2=&sortBy=fs&equalityOption=equality&equalityOption=noequality&search=search"""
+    val exampleURL2 = """http://rv-n15.cs.washington.edu:25000/relgrams?arg1=%22type+person%22&rel=graduate&arg2=&sortBy=fs&equalityOption=noequality&search=search"""
+    val exampleURL3 = """http://rv-n15.cs.washington.edu:25000/relgrams?arg1=&rel=pitch&arg2=&sortBy=fs&equalityOption=noequality&search=search"""
+    var loginForm:String = "<h4>Relgrams Search</h4>\n"
+    loginForm += usage(exampleURL1, exampleURL2, exampleURL3)
     loginForm += "<form action=\"relgrams\">\n"
-
     //loginForm += "<textarea name=original rows=10 cols=40>" + document + "</textarea><br/>"
-    loginForm += "<input name=arg1 value=\"%s\"> Arg1</input><br/>\n".format(arg1)
-    loginForm += "<input name=rel value=\"%s\"> Rel</input><br/>\n".format(rel)
-    loginForm += "<input name=arg2 value=\"%s\"> Arg2</input><br/>\n".format(arg2)
-
+    loginForm += "<input name=arg1 size=\"50\" value=\"%s\"> Arg1</input><br/>\n".format(arg1)
+    loginForm += "<input name=rel size=\"50\" value=\"%s\"> Rel</input><br/>\n".format(rel)
+    loginForm += "<input name=arg2 size=\"50\" value=\"%s\"> Arg2</input><br/>\n".format(arg2)
+    loginForm += "<br/>"
     loginForm += sortByOptions(query)
+    loginForm += "<br/><br/>"
+
     loginForm += equalityCheckBoxes(query).toString//equalityOptions(query)
+    loginForm += "<br/>"
     /**loginForm += viewOptions(query)
     loginForm += measureOptions(query)
     loginForm += mesureIndexOptions(query)
@@ -332,6 +291,7 @@ object HtmlHelper{
     */
     loginForm += "<input name=search type=\"submit\" value=\"search\"/>\n"//<span style="padding-left:300px"></span>
     loginForm += "</form>\n"
+
     //println(loginForm)
     return loginForm
   }
@@ -502,10 +462,17 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     ftypeName.equals(stypeName)
   }
 
+  def hasPronounArgs(relgram: Relgram):Boolean = hasPronounArgs(relgram.first) || hasPronounArgs(relgram.second)
+  def hasPronounArgs(tuple:RelationTuple):Boolean = isPronounArg(tuple.arg1.trim) || isPronounArg(tuple.arg2.trim)
+  val pronouns = Set("he", "she", "they", "it")
+  def isPronounArg(arg:String) = pronouns.contains(arg)
+
+
   def renderSearchResults(measureName:String, query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
     var even = false
     cssSoft + cssFinancial + wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n<tbody>" +
                          results._2.filter(ma => !isIdentityRelgram(ma._1.urgc.rgc.relgram))
+                                   .filter(ma => !hasPronounArgs(ma._1.urgc.rgc.relgram))
                                    .filter(ma => aboveThreshold(ma._1.urgc))
                                    .filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
                                    .filter(ma => !hasTypeQuantity(ma._1.urgc.rgc.relgram))
@@ -568,7 +535,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
       val sortBy = ReqHelper.getSortBy(req)
       val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
       val sortedResults = results._2.sortBy(ma => sortByMeasure(ma, sortBy))
-      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery,host, port) + "<br/><br/>"
+      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery,host, port) + "<br/>"
         + renderSearchResults("conditional", relgramsQuery, (results._1, sortedResults))))
       //"" + "Arg1: " + relgramsQuery.toHTMLString) )
     }
