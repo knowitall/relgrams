@@ -250,8 +250,7 @@ object HtmlHelper{
               <b>Usage:</b> Can be used to find rel-grams whose first tuple matches the fields specified below.
               <br/>
               <b>Querying:</b><br/>
-              <span>a) By default, tuples that contain ANY of the words in the corresponding fields are returned.</span>
-              <!--li>Use <i>AND</i> between words to find tuples that contain all the specified words.</li-->
+              <span>a) By default, tuples that contain ANY of the words in the corresponding fields are returned.</span><br/>
               <span>b) Quotes around words causes the input string to be treated as a phrase.</span><br/>
               <span>c) Prepositions in relaion strings are ignored for search purposes -- To be fixed.</span><br/>
               <b>Examples:</b> <a href={exampleURL1}>(X:[person], arrest, )</a>
