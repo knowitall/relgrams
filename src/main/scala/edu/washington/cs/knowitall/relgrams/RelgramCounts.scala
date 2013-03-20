@@ -71,21 +71,11 @@ object RelationTuple{
   }
 
   val dummyTuple = new RelationTuple("NA", "NA", "NA", Set(0), Set("NA"), Set("NA"),
-                                    new scala.collection.mutable.HashMap[String,Int](), new scala.collection.mutable.HashMap[String,Int]())
+                                    new scala.collection.mutable.HashMap[String,Int](),
+                                    new scala.collection.mutable.HashMap[String,Int]())
 
 
-
-
-
-
-  //This is probably extreme!
-  //val beVerbPPRemoveRe = """be (.*?) (.+$)""".r
-  val beRemoveRe = """be (.*)""".r
-
-  def cleanRelString(rel:String): String = rel.replaceAll("""^be """, "")/**beRemoveRe.findFirstMatchIn(rel) match {
-    case Some(m:Match) => m.group(1)
-    case None => rel.replaceAll(be """, "")
-  }*/
+  def cleanRelString(rel:String): String = rel.replaceAll("""^be """, "")
 
   def setSubsumption(awords: Array[String], bwords: Array[String]): Boolean = {
     awords.filter(a => !a.equals("be")).toSet.subsetOf(bwords.filter(b => !b.equals("be")).toSet)

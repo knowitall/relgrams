@@ -112,8 +112,6 @@ case class TypedTuplesRecord(docid:String, sentid:Int, sentence:String, extrid:I
   arg1Types.mkString(","), arg2Types.mkString(","))
 
 
-  val beRemoveRe = """be (.*)""".r
-
   def cleanRelString(r:String): String = r.replaceAll("""^be """, "")
 
   def normTupleString(): String = {

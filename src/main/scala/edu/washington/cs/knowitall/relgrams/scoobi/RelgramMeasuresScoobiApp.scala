@@ -52,40 +52,50 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
       second + "\t" + first
     }
   }
-  def toUndirRelgramCounts(rgcs: Iterable[RelgramCounts]) = {
+  def toUndirRelgramCounts(rgcs: Iterable[RelgramCounts], minFreq:Int) = {
     val seq = rgcs.toSeq
     val ab = seq(0)
 
+    def aboveThreshold(counts:Map[Int, Int]) = {
+      val bc = counts.values
+      !bc.isEmpty && bc.max >= minFreq
+    }
     def flip(ab:RelgramCounts): RelgramCounts = {
 
       def flipRelgram(relgram:Relgram): Relgram = new Relgram(relgram.second, relgram.first)
       def flipArgCounts(argCounts:ArgCounts):ArgCounts = new ArgCounts(argCounts.secondArg1Counts, argCounts.secondArg2Counts,
                                                               argCounts.firstArg1Counts, argCounts.firstArg2Counts)
-
       val orelgram = flipRelgram(ab.relgram)
       val oargCounts = flipArgCounts(ab.argCounts)
       new RelgramCounts(orelgram, new mutable.HashMap[Int, Int](), oargCounts)
-
     }
     if (seq.size >= 2){
       if (seq.size > 2) println("Duplicate relgrams: " + seq.mkString("\n"))
       val ba = seq(1)
       val bitermCounts = MapUtils.combine(ab.counts, ba.counts)
-      new UndirRelgramCounts(ab, bitermCounts)::new UndirRelgramCounts(ba, bitermCounts)::Nil
+      if(aboveThreshold(bitermCounts.toMap)){
+        new UndirRelgramCounts(ab, bitermCounts)::new UndirRelgramCounts(ba, bitermCounts)::Nil
+      }else{
+        Seq[UndirRelgramCounts]()
+      }
     }else{
       //println("Seq size < 2: " + ab.toString)
       val ba = flip(ab)
       val bitermCounts = ab.counts.map(x => x).toMap
-      new UndirRelgramCounts(ab, bitermCounts)::new UndirRelgramCounts(ba, bitermCounts)::Nil
+      if(aboveThreshold(bitermCounts)){
+        new UndirRelgramCounts(ab, bitermCounts)::new UndirRelgramCounts(ba, bitermCounts)::Nil
+      }else{
+        Seq[UndirRelgramCounts]()
+      }
     }
   }
 
-  def toUndirRelgramCounts(relgramCounts: DList[RelgramCounts]):DList[UndirRelgramCounts] = {
+  def toUndirRelgramCounts(relgramCounts: DList[RelgramCounts], minFreq:Int):DList[UndirRelgramCounts] = {
 
     import RelgramCounts._
     import UndirRelgramCounts._
     relgramCounts.groupBy(rgc => lexicallyOrderedKey(rgc.relgram))
-                 .flatMap(grp => toUndirRelgramCounts(grp._2))
+                 .flatMap(grp => toUndirRelgramCounts(grp._2, minFreq))
   }
 
   def exportUndirCounts(undirCounts: DList[UndirRelgramCounts], outputPath: String){
@@ -175,7 +185,7 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
       !bc.isEmpty && bc.max >= minFreq
     }
     //NOTE filtering out relgrams that do not occur at least five times with each other.
-    val undirCounts = toUndirRelgramCounts(relgramCounts).filter(urgc => aboveThreshold(urgc))
+    val undirCounts = toUndirRelgramCounts(relgramCounts, minFreq).filter(urgc => aboveThreshold(urgc))
     val tupleCounts = loadRelationTupleCounts(tuplesPath)
     val measures = computeMeasures(undirCounts, tupleCounts)
     exportMeasures(measures, outputPath)
@@ -195,7 +205,7 @@ object RelgramMeasuresTest{
     }
 
     if (!parser.parse(args)) return
-
+    val minFreq = 0
     def exportLocal(undirCounts: immutable.Iterable[UndirRelgramCounts], outputPath: String){
       val writer = new PrintWriter(outputPath)
       undirCounts.foreach(uc => writer.println(uc.serialize))
@@ -214,7 +224,7 @@ object RelgramMeasuresTest{
                                 rgc
                               })
                               .groupBy(rgc => RelgramMeasuresScoobiApp.lexicallyOrderedKey(rgc.relgram))
-                              .flatMap(grp => RelgramMeasuresScoobiApp.toUndirRelgramCounts(grp._2))
+                              .flatMap(grp => RelgramMeasuresScoobiApp.toUndirRelgramCounts(grp._2, minFreq))
 
     undirCounts.foreach(uc => UndirRelgramCounts.fromSerializedString(uc.serialize) match {
       case Some(c:UndirRelgramCounts) =>

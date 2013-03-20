@@ -105,9 +105,10 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
       var prevSentId = 0
       var prevExtrId = 0
       records.map(record => {
-        if (record.sentid > prevSentId || record.extrid > prevSentId) index = index + 1
+        if (record.sentid > prevSentId || record.extrid > prevExtrId) index = index + 1
         prevSentId = record.sentid
         prevExtrId = record.extrid
+        //println("(%d, %d)=%d [%s,%s,%s]".format(record.sentid, record.extrid, index, record.arg1Head, record.relHead, record.arg2Head))
         (record, index)
       })
     }
