@@ -475,13 +475,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
   def renderSearchResults(measureName:String, query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
     var even = false
     cssSoft + cssFinancial + wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n<tbody>" +
-                         results._2.filter(ma => !isIdentityRelgram(ma._1.urgc.rgc.relgram))
-                                   .filter(ma => !hasPronounArgs(ma._1.urgc.rgc.relgram))
-                                   .filter(ma => aboveThreshold(ma._1.urgc))
-                                   .filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
-                                   .filter(ma => !hasTypeQuantity(ma._1.urgc.rgc.relgram))
-                                   .filter(ma => equalityTypesAgree(ma._1.urgc.rgc.relgram))
-                                   .map(ma => {
+                         results._2.map(ma => {
                            even = !even
                            toResultsRow(measureName, query, ma._1, ma._2, even)
                          }).mkString("\n") + "</tbody>")
@@ -515,6 +509,28 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     case _ => affinities.firstUndir.conditional
   }
 
+  def pruneResults(query:RelgramsQuery, results:Seq[(Measures, AffinityMeasures)]) = {
+    def applyFilters(in:Seq[(Measures, AffinityMeasures)]) = in.filter(ma => !isIdentityRelgram(ma._1.urgc.rgc.relgram))
+                                                              .filter(ma => !hasPronounArgs(ma._1.urgc.rgc.relgram))
+                                                             .filter(ma => aboveThreshold(ma._1.urgc))
+                                                             .filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
+                                                             .filter(ma => !hasTypeQuantity(ma._1.urgc.rgc.relgram))
+                                                             .filter(ma => equalityTypesAgree(ma._1.urgc.rgc.relgram))
+
+    def removeDuplicates(in:Seq[(Measures, AffinityMeasures)]) = {
+      var keys = Set[String]()
+      def key(m:Measures) = m.urgc.rgc.prettyString
+      in.flatMap(x => {
+        val k= key(x._1)
+        if(!keys.contains(k)) {
+          keys += k
+          Some(x)
+        } else None
+      })
+    }
+    removeDuplicates(applyFilters(results))
+  }
+
   def intent: Plan.Intent = {
 
     case req @ GET(Path("/relgrams")) => {
@@ -539,8 +555,9 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
       val sortBy = ReqHelper.getSortBy(req)
       val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
       val sortedResults = results._2.sortBy(ma => sortByMeasure(ma, sortBy))
+      val prunedResults = pruneResults(relgramsQuery, sortedResults)
       ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery,host, port) + "<br/>"
-        + renderSearchResults("conditional", relgramsQuery, (results._1, sortedResults))))
+                  + renderSearchResults("conditional", relgramsQuery, (results._1, prunedResults))))
       //"" + "Arg1: " + relgramsQuery.toHTMLString) )
     }
   }
