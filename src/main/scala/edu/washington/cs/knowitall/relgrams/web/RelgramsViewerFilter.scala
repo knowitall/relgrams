@@ -385,13 +385,14 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
 
   }
+  import edu.washington.cs.knowitall.relgrams.utils.CollectionUtils._
   def resultsRowContent(measureName:String, query:RelgramsQuery, measures:Measures, affinities:AffinityMeasures, even:Boolean) = {
 
     val measureVal = "%.4f".format(getMeasure(measureName, measures, affinities))
     val undirRGC = measures.urgc
     val rgc = undirRGC.rgc
-    val fscount = undirRGC.rgc.counts.values.max
-    val bitermCount = undirRGC.bitermCounts.values.max
+    val fscount = maxOrElse(undirRGC.rgc.counts.values, 0)
+    val bitermCount = maxOrElse(undirRGC.bitermCounts.values, 0)
     val sfcount = bitermCount - fscount
     var farg1Counts: mutable.Map[String, Int] = rgc.argCounts.firstArg1Counts
     var farg2Counts: mutable.Map[String, Int] = rgc.argCounts.firstArg2Counts
@@ -451,7 +452,8 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
   def hasTypeQuantity(relgram:Relgram):Boolean = hasTypeQuantity(relgram.first) || hasTypeQuantity(relgram.second)
 
   var minFreq = 0
-  def aboveThreshold(urgc:UndirRelgramCounts) = urgc.rgc.counts.values.max > minFreq
+  import edu.washington.cs.knowitall.relgrams.utils.CollectionUtils._
+  def aboveThreshold(urgc:UndirRelgramCounts) = maxOrElse(urgc.rgc.counts.values, 0) > minFreq
 
   def isIdentityRelgram(relgram:Relgram) = {
     relgram.first.isIdenticalTo(relgram.second)
@@ -500,10 +502,15 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     val (measures, affinities) = tuple
     getMeasure(measureName, measures, affinities)
   }
+
+  //def maxOrElse(values:Iterable[Int], elseValue:Int):Int = if(!values.isEmpty) values.max else elseValue
+
+  import edu.washington.cs.knowitall.relgrams.utils.CollectionUtils._
   def getMeasure(measureName:String, measures:Measures, affinities:AffinityMeasures):Double = measureName match {
+
     case "conditional" => affinities.firstUndir.conditional
-    case "fs" => measures.urgc.rgc.counts.values.max.toDouble
-    case "sf" => (measures.urgc.bitermCounts.values.max - measures.urgc.rgc.counts.values.max).toDouble
+    case "fs" => maxOrElse(measures.urgc.rgc.counts.values, 0).toDouble
+    case "sf" => (maxOrElse(measures.urgc.bitermCounts.values, 0) - maxOrElse(measures.urgc.rgc.counts.values, 0)).toDouble
     case "f" => measures.firstCounts.toDouble
     case "s" => measures.secondCounts.toDouble
     case _ => affinities.firstUndir.conditional
