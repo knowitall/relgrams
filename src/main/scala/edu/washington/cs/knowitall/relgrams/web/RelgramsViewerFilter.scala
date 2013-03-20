@@ -187,7 +187,7 @@ object HtmlHelper{
     //<br/>
     val inputs = """<input type="checkbox" name="equalityOption" value="equality" %s>Show rel-grams with equality constraints.</span></input>
                     <br/>
-                   <input type="checkbox" name="equalityOption" value="noequality" %s>Show rel-grams without equality constraints.</span></input>
+                    <input type="checkbox" name="equalityOption" value="noequality" %s>Show rel-grams without equality constraints.</span></input>
                  """.format(equalitySelected, noequalitySelected)
     inputs.toString
   }
@@ -308,6 +308,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   def search(query: RelgramsQuery):(String, Seq[(Measures, AffinityMeasures)]) = (query.toHTMLString, solrManager.search(query))
 
+  val dropCSS ="span.dropt {border-bottom: thin dotted; background: #ffeedd;}\nspan.dropt:hover {text-decoration: none; background: #ffffff; z-index: 6; }\nspan.dropt span {position: absolute; left: -9999px;\n  margin: 20px 0 0 0px; padding: 3px 3px 3px 3px;\n  border-style:solid; border-color:black; border-width:1px; z-index: 6;}\nspan.dropt:hover span {left: 2%; background: #ffffff;} \nspan.dropt span {position: absolute; left: -9999px;\n  margin: 4px 0 0 0px; padding: 3px 3px 3px 3px; \n  border-style:solid; border-color:black; border-width:1px;}\nspan.dropt:hover span {margin: 20px 0 0 170px; background: #ffffff; z-index:6;} "
   val cssSoft = "<style type=\"text/css\">table.soft {\n\tborder-spacing: 0px;}\n.soft th, .soft td {\n\tpadding: 5px 30px 5px 10px;\n\tborder-spacing: 0px;\n\tfont-size: 90%;\n\tmargin: 0px;}\n.soft th, .soft td {\n\ttext-align: left;\n\tbackground-color: #e0e9f0;\n\tborder-top: 1px solid #f1f8fe;\n\tborder-bottom: 1px solid #cbd2d8;\n\tborder-right: 1px solid #cbd2d8;}\n.soft tr.head th {\n\tcolor: #fff;\n\tbackground-color: #90b4d6;\n\tborder-bottom: 2px solid #547ca0;\n\tborder-right: 1px solid #749abe;\n\tborder-top: 1px solid #90b4d6;\n\ttext-align: center;\n\ttext-shadow: -1px -1px 1px #666666;\n\tletter-spacing: 0.15em;}\n.soft td {\n\ttext-shadow: 1px 1px 1px #ffffff;}\n.soft tr.even td, .soft tr.even th {\n\tbackground-color: #3E698E;}\n.soft tr.head th:first-child {\n\t-webkit-border-top-left-radius: 5px;\n\t-moz-border-radius-topleft: 5px;\n\tborder-top-left-radius: 5px;}\n.soft tr.head th:last-child {\n\t-webkit-border-top-right-radius: 5px;\n\t-moz-border-radius-topright: 5px;\n\tborder-top-right-radius: 5px;}</style>"
   val cssFinancial ="<style type=\"text/css\">/* financial or timetable */\n\nbody {\n\tfont-family: Arial, Verdana, sans-serif;\n\tcolor: #111111;}\n\ntable.financial {\n\twidth: 1200px;}\n\n.financial th, .financial td {\n\tpadding: 7px 10px 10px 10px;}\n\n.financial th {\n\ttext-transform: uppercase;\n\tletter-spacing: 0.1em;\n\tfont-size: 90%;\n\tborder-bottom: 2px solid #111111;\n\tborder-top: 1px solid #999;\n\ttext-align: left;}\n\n.financial tr.even {\n\tbackground-color: #efefef;}\n\n.financial tr:hover {\n\tbackground-color: #c3e6e5;}\n\n.financial tfoot td {\n\tborder-top: 2px solid #111111;\n\tborder-bottom: 1px solid #999;}\n\n.money {\n\ttext-align: right;}</style>"
   val tableTags = "<table class=\"financial\">\n%s\n</table>\n"
@@ -354,9 +355,12 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
   }
   def toDisplayText(tuple:RelationTuple):(String, String, String)= (displayTypeText(tuple.arg1).replaceAll("""XVAR""", "X"), tuple.rel, displayTypeText(tuple.arg2).replaceAll("""XVAR""", "X"))
 
-  def relationWithRelArgs(first:RelationTuple, firstArg1Counts:mutable.Map[String, Int], firstArg2Counts:mutable.Map[String, Int]): NodeBuffer = {
-
-    relationWithRelArgs(first, firstArg1Counts.toArray.sortBy(x => -x._2).mkString(","), firstArg2Counts.toArray.sortBy(x => -x._2).mkString(","))
+  def relationWithRelArgs(first:RelationTuple,
+                          firstArg1Counts:mutable.Map[String, Int],
+                          firstArg2Counts:mutable.Map[String, Int]): NodeBuffer = {
+    relationWithRelArgs(first, firstArg1Counts.toArray.sortBy(x => -x._2).mkString(","),
+                               firstArg2Counts.toArray.sortBy(x => -x._2).mkString(",")
+                               )
   }
   val xvartypeargsstyle,typeargsstyle,xvarargstyle="font-weight: bold; color: #585858"
   val relstyle = "font-weight: bold; color: #0B614B"
@@ -372,10 +376,11 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
       else
         argstyle
     }
+    val sentence = "Ids: %s\n\nSentence: %s".format(tuple.ids.toSeq.sortBy(id => id).take(3).mkString(","), tuple.sentences.toSeq.sortBy(s => s).headOption.getOrElse("No sentence found."))
     val arg1Style = argStyle(tuple.arg1)
     val arg2Style = argStyle(tuple.arg2)
      <td TITLE={arg1TopArgs}><span style={arg1Style}>{arg1}</span></td>
-     <td><span style={relstyle}>{rel}</span></td>
+     <td TITLE={sentence}><span style={relstyle}>{rel}</span></td>
      <td TITLE={arg2TopArgs}><span style={arg2Style}>{arg2}</span></td>
 
 
