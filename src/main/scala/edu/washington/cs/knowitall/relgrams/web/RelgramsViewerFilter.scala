@@ -468,7 +468,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   def hasPronounArgs(relgram: Relgram):Boolean = hasPronounArgs(relgram.first) || hasPronounArgs(relgram.second)
   def hasPronounArgs(tuple:RelationTuple):Boolean = isPronounArg(tuple.arg1.trim) || isPronounArg(tuple.arg2.trim)
-  val pronouns = Set("he", "she", "they", "it", "i")
+  val pronouns = Set("he", "she", "they", "it", "i", "we")
   def isPronounArg(arg:String) = pronouns.contains(arg)
 
 
