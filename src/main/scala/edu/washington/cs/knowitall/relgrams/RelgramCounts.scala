@@ -388,8 +388,12 @@ object AffinityMeasures{
     ((weights pairElements values).map(wv => wv._1 * wv._2).sum)/weights.sum
   }
   def combine(values:Seq[Double], combineAlpha:Double) = {
-    val weights = (1 until values.size+1).map(i => math.pow(combineAlpha, i))
-    weightedAverage(weights, values)
+    if(!values.isEmpty){
+      val weights = (1 until values.size+1).map(i => math.pow(combineAlpha, i))
+      weightedAverage(weights, values)
+    }else{
+      0.0
+    }
   }
   def conditionals(countsMap: Map[Int, Int], smoothingDelta: Double, firstCounts: Int): Seq[Double] = {
     countsMap.toSeq.sortBy(kv => kv._1).map(kv => kv._2.toDouble / (smoothingDelta + firstCounts.toDouble))
