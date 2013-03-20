@@ -415,11 +415,13 @@ case class AffinityMeasures(firstUndir:Conditionals, firstDir:Conditionals,
 
 object WindowedMeasure{
 
+  val countsRe = """[^0-9,]""".r
+  def isValidCountsString(string:String) = countsRe.findFirstMatchIn(string) == None
   val sep = "_WSEP_"
   def fromSerializedString(string:String) = {
     val splits = string.split(sep)
     if (splits.size == 2){
-      val doubles = splits(0).split(",").map(x => x.toDouble).toSeq
+      val doubles = if (isValidCountsString(splits(0))) splits(0).split(",").filter(x => x.size > 0).map(x => x.toDouble).toSeq else Seq[Double]()
       Some((doubles, splits(1).toDouble))
     } else {
       None
