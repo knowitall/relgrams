@@ -178,14 +178,12 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
     import Measures._
     import RelationTupleCounts._
     val relgramCounts = loadRelgramCountsAndDistribute(inputPath, maxWindow, minDirFreq)
-
-
+    //NOTE filtering out relgrams that do not occur at least minFreq times with each other.
     def aboveThreshold(urgc:UndirRelgramCounts) = {
       val bc = urgc.bitermCounts.values
       !bc.isEmpty && bc.max >= minFreq
     }
-    //NOTE filtering out relgrams that do not occur at least five times with each other.
-    val undirCounts = toUndirRelgramCounts(relgramCounts, minFreq).filter(urgc => aboveThreshold(urgc))
+    val undirCounts = toUndirRelgramCounts(relgramCounts, minFreq)
     val tupleCounts = loadRelationTupleCounts(tuplesPath)
     val measures = computeMeasures(undirCounts, tupleCounts)
     exportMeasures(measures, outputPath)
