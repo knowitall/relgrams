@@ -10,10 +10,8 @@ import utils.MapUtils
  * To change this template use File | Settings | File Templates.
  */
 class RelgramsCounter(maxSize:Int) {
-  def combineTupleCounts(a: RelationTupleCounts, b: RelationTupleCounts):RelationTupleCounts = reduceTupleCounts(a::b::Nil)
 
-
-
+  def combineTupleCounts(a: RelationTupleCounts, b: RelationTupleCounts):RelationTupleCounts = reduceTupleCounts(a::b::Nil).get
   def combineRelgramCounts(a: RelgramCounts, b: RelgramCounts):RelgramCounts = reduce(a::b::Nil)
 
   def haveDisjointHashes(mergeWith: RelgramCounts, toMerge: RelgramCounts): Boolean = {
@@ -33,8 +31,9 @@ class RelgramsCounter(maxSize:Int) {
 
     MapUtils.addToUntilSize(mergeWith.argCounts.firstArg1Counts, toMerge.argCounts.firstArg1Counts, maxSize)
     MapUtils.addToUntilSize(mergeWith.argCounts.firstArg2Counts, toMerge.argCounts.firstArg2Counts, maxSize)
+
     MapUtils.addToUntilSize(mergeWith.argCounts.secondArg1Counts, toMerge.argCounts.secondArg1Counts, maxSize)
-    MapUtils.addToUntilSize(mergeWith.argCounts.secondArg1Counts, toMerge.argCounts.secondArg2Counts, maxSize)
+    MapUtils.addToUntilSize(mergeWith.argCounts.secondArg2Counts, toMerge.argCounts.secondArg2Counts, maxSize)
   }
 
   def mergeCounts(mergeWith: RelgramCounts, toMerge: RelgramCounts){
@@ -116,12 +115,6 @@ class RelgramsCounter(maxSize:Int) {
     }else{
       None
     }
-
-  }
-
-  def mergeTupleCounts(mergeWith: RelationTupleCounts, toMerge: RelationTupleCounts) = {
-    mergeWith.count += toMerge.count
-    mergeTuple(mergeWith.tuple, toMerge.tuple)
   }
 
   def reduceTupleCounts(tuples: Iterable[RelationTupleCounts]) = {
@@ -135,8 +128,16 @@ class RelgramsCounter(maxSize:Int) {
         mergeTupleCounts(outTuple, tuple)
       count = count + 1
     })
-    outTuple
+    Some(outTuple)
 
   }
+
+
+  def mergeTupleCounts(mergeWith: RelationTupleCounts, toMerge: RelationTupleCounts) = {
+    mergeWith.count += toMerge.count
+    mergeTuple(mergeWith.tuple, toMerge.tuple)
+  }
+
+
 
 }

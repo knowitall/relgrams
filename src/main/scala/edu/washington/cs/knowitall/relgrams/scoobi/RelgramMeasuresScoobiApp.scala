@@ -136,18 +136,21 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
     import RelationTupleCounts._
     import RelgramCounts._
     import Measures._
-    val groupedRGCs =relgramCounts.map(urgc => (tupleKey(urgc.rgc.relgram.first), urgc))
-    val groupedTCs = tupleCounts.map(tc => (tupleKey(tc.tuple), tc.count))
+
+    val groupedRGCs: DList[(String, UndirRelgramCounts)] =relgramCounts.map(urgc => (tupleKey(urgc.rgc.relgram.first), urgc))
+    val groupedTCs: DList[(String, Int)] = tupleCounts.map(tc => (tupleKey(tc.tuple), tc.count))
+
     import com.nicta.scoobi.lib.Relational._
-    val groups = coGroup(groupedRGCs, groupedTCs)
-    val measures = groups.flatMap(group => {
+    val groups: DList[(String, (Iterable[UndirRelgramCounts], Iterable[Int]))] = coGroup(groupedRGCs, groupedTCs)
+
+    val measures: DList[(String, Measures)] = groups.flatMap(group => {
       val firstCount = group._2._2.headOption.getOrElse(0)
       group._2._1.map(urgc => {
         (tupleKey(urgc.rgc.relgram.second), new Measures(urgc, firstCount, 0))
       })
     })
 
-    val mgroups = coGroup(measures,groupedTCs)
+    val mgroups: DList[(String, (Iterable[Measures], Iterable[Int]))] = coGroup(measures,groupedTCs)
     mgroups.flatMap(group => {
       val secondCount = group._2._2.headOption.getOrElse(0)
       group._2._1.map(measure => {
@@ -157,7 +160,7 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
 
   }
 
-  def run() {
+  override def run() {
     var inputPath, outputPath = ""
     var tuplesPath = ""
     var maxWindow = 50

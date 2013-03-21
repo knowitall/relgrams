@@ -57,7 +57,7 @@ object RelgramsLocalApp {
   def loadTupleDocuments(inputPath:String) = {
     Source.fromFile(inputPath).getLines().flatMap(x => TuplesDocumentWithCorefMentions.fromString(x)).toSeq
   }
-  def extractRelgramCountsAndTuples(tuplesDocuments: Seq[TuplesDocumentWithCorefMentions], equality:Boolean, noequality:Boolean): Seq[(Map[String, RelgramCounts], Map[String, RelationTuple])] ={
+  def extractRelgramCountsAndTuples(tuplesDocuments: Seq[TuplesDocumentWithCorefMentions], equality:Boolean, noequality:Boolean): Seq[(Map[String, RelgramCounts], Map[String, RelationTupleCounts])] ={
     tuplesDocuments.flatMap(document => {
       val docid = document.tuplesDocument.docid
       try{
@@ -78,11 +78,11 @@ object RelgramsLocalApp {
                  .flatMap(x => counter.reduceRelgramCounts(x._2.map(y => y._2)))
   }
 
-  def reduceTuplesCounts(tuplesCounts: Iterable[Map[String, RelationTuple]]) = {
+  def reduceTuplesCounts(tuplesCounts: Iterable[Map[String, RelationTupleCounts]]) = {
     import RelationTupleCounts._
     tuplesCounts.flatten
                 .groupBy(x => x._1)
-                .flatMap(x => counter.reduceTuples(x._2.map(y => y._2)))
+                .flatMap(x => counter.reduceTupleCounts(x._2.map(y => y._2)))
   }
 
   def exportRelgrams(relgramCounts: Iterable[RelgramCounts], outputPath: String){

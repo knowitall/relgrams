@@ -55,23 +55,30 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
   }
 
 
+  def rtcKey(record:TypedTuplesRecord, relKey:String) = relKey + "_:_" + record.sentid + "-" + record.extrid
+  def splitRTCKey(rtcKey:String) = rtcKey.split("_:_")
+
   def createOrGetRelationTuple(arg1:String, rel:String, arg2:String,
                                record:TypedTuplesRecord,
                                sentences:mutable.Set[String],
                                ids:mutable.Set[String],
-                               relationTuplesMap:mutable.HashMap[String, RelationTuple]) = {
+                               relationTuplesMap:mutable.HashMap[String, RelationTuple],
+                               rtcountsMap:mutable.HashMap[String, RelationTupleCounts]) = {
     val relKey = relationTupleKey(arg1, rel, arg2)
     def newCountsMap = new mutable.HashMap[String, Int]
     val relationTuple = relationTuplesMap.get(relKey) match {
-      case Some(relationTuple:RelationTuple) => {
-        relationTuple
-      }
+      case Some(relationTuple:RelationTuple) => relationTuple
       case None => {
-        val relationTuple = new RelationTuple(arg1, rel, arg2, record.hashes, sentences, ids, newCountsMap,newCountsMap)
+        val relationTuple = new RelationTuple(arg1, rel, arg2, record.hashes, sentences, ids, newCountsMap, newCountsMap)
         relationTuplesMap += relKey -> relationTuple
         relationTuple
       }
     }
+
+
+    val rtc = rtcountsMap.getOrElseUpdate(rtcKey(record, relKey), new RelationTupleCounts(relationTuple, 0))
+    rtc.count = rtc.count + 1
+
     addToArgCounts(relationTuple.arg1HeadCounts, record.arg1Head)
     addToArgCounts(relationTuple.arg2HeadCounts, record.arg2Head)
     addToSentences(relationTuple, record.sentence)
@@ -94,7 +101,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
   def isTypedTuple(tuple:RelationTuple) = tuple.arg1.startsWith("Type:") || tuple.arg2.startsWith("Type:")
 
-  def extractRelgramsFromDocument(document:TuplesDocumentWithCorefMentions): (Map[String, RelgramCounts], Map[String, RelationTuple]) = {
+  def extractRelgramsFromDocument(document:TuplesDocumentWithCorefMentions): (Map[String, RelgramCounts], Map[String, RelationTupleCounts]) = {
 
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
     var relationTuplesMap = new mutable.HashMap[String, RelationTuple]()
@@ -124,6 +131,10 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
                                                               //.filter(record => notInferredPrepRelation(record))
                                                               //.sortBy(r => (r.sentid, r.extrid))
                                                               //.zipWithIndex
+    println("Docsize\t%d\t%d\t%d\t%d".format(document.tuplesDocument.tupleRecords.size,
+                                             prunedRecords.size,
+                                             prunedRecords.map(r => r._1.sentid).max,
+                                             prunedRecords.map(r => r._2).max))
     val mentions = document.mentions
     val sentencesWithOffsets = if(equality){
     val trimdocument = TuplesDocumentGenerator.trimDocument(document.tuplesDocument)
@@ -138,14 +149,15 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
       argRepCache.getOrElseUpdate((record.sentid, record.extrid), argRepresentationsNoCache(record))
     }
     def argRepresentationsNoCache(record:TypedTuplesRecord) = {
-      def isNotQuantityPartOrGroupType(arg:String) = !arg.startsWith("type") || (!arg.contains("quantity") && !arg.contains("part") && !arg.contains("group"))
+      //def isNotQuantityPartOrGroupType(arg:String) = !arg.startsWith("type") || (!arg.contains("quantity") && !arg.contains("part") && !arg.contains("group"))
       def lowerCaseAndFilter(args:Iterable[String]) = args.map(arg => arg.toLowerCase)
                                                       .filter(arg => !arg.trim.isEmpty)
-                                                      .filter(arg => isNotQuantityPartOrGroupType(arg))
-                                                      .map(arg => arg.replaceAll("""number:number""", "number"))
+                                                      //.filter(arg => isNotQuantityPartOrGroupType(arg))
+                                                      //.map(arg => arg.replaceAll("""number:number""", "number"))
 
 
-      def ifTimeUnitOrPeriodRemoveNumber(args:Iterable[String]) = if(args.contains("type:time_unit") || args.contains("type:time_period")) args.filter(arg => !arg.equals("type:number")) else args
+      def isTimeUnitOrPeriod(args:Iterable[String]) = args.contains("type:time_unit") || args.contains("type:time_period")
+      def ifTimeUnitOrPeriodRemoveNumber(args:Iterable[String]) = if(isTimeUnitOrPeriod(args)) args.filter(arg => !arg.equals("type:number")) else args
       (ifTimeUnitOrPeriodRemoveNumber(lowerCaseAndFilter(record.arg1Head::Nil ++ record.arg1Types)).toSet,
         ifTimeUnitOrPeriodRemoveNumber(lowerCaseAndFilter(record.arg2Head::Nil ++ record.arg2Types)).toSet)
     }
@@ -156,6 +168,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     }
 
     val prunedMentions = pruneMentions(mentions)
+    var rtcountsMap = new mutable.HashMap[String, RelationTupleCounts]()
     val recordRelationTuples = new mutable.HashMap[(Int, Int), mutable.HashSet[RelationTuple]]()
     getRecordsIterator.foreach(index => {
       val record = index._1
@@ -165,7 +178,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
       val rel = record.relHead
       arg1s.foreach(arg1 => {
         arg2s.foreach(arg2 => {
-          recordRelationTuples.getOrElseUpdate((record.sentid, record.extrid), new mutable.HashSet[RelationTuple]()) += createOrGetRelationTuple(arg1, rel, arg2, record, sentences, ids, relationTuplesMap)
+          recordRelationTuples.getOrElseUpdate((record.sentid, record.extrid), new mutable.HashSet[RelationTuple]()) += createOrGetRelationTuple(arg1, rel, arg2, record, sentences, ids, relationTuplesMap, rtcountsMap)
         })
       })
     })
@@ -226,7 +239,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
           corefArgs match {
             case Some(resolvedArgs:(String, String, String, String)) => {
-              extractEqualityRelgrams(resolvedArgs, outer, inner, first, second, relationTuplesMap, relgramCountsMap, countWindow, addedSeconds)
+              extractEqualityRelgrams(resolvedArgs, outer, inner, first, second, relationTuplesMap, relgramCountsMap, rtcountsMap, countWindow, addedSeconds)
             }
             case None =>
           }
@@ -234,8 +247,17 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
         })
       })
     })
-
-    (relgramCountsMap.toMap, relationTuplesMap.toMap)
+    val outputRelationCountsMap = new mutable.HashMap[String, RelationTupleCounts]()
+    rtcountsMap.foreach(kv => {
+      val splits = splitRTCKey(kv._1)
+      outputRelationCountsMap.get(splits(0)) match {
+        case Some(x:RelationTupleCounts) => {
+          x.count += kv._2.count
+        }
+        case None => outputRelationCountsMap += splits(0) -> kv._2
+      }
+    })
+    (relgramCountsMap.toMap, outputRelationCountsMap.toMap)
 
   }
 
@@ -258,7 +280,9 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
   def extractEqualityRelgrams(resolvedArgs: (String, String, String, String),
                               outer: TypedTuplesRecord, inner: TypedTuplesRecord,
                               first: RelationTuple, second: RelationTuple,
-                              relationTuplesMap:HashMap[String, RelationTuple], relgramCountsMap: HashMap[String, RelgramCounts],
+                              relationTuplesMap:HashMap[String, RelationTuple],
+                              relgramCountsMap: HashMap[String, RelgramCounts],
+                              rtcountsMap:mutable.HashMap[String, RelationTupleCounts],
                               countWindow: Int,
                               addedSeconds:mutable.HashSet[String]){
 
@@ -296,11 +320,8 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
     if (!(farg.equals("NA") || sarg.equals("NA")) && !(farg.equals(sarg))){
       return
     }
-
-    val secondKey = relgramKey(fa1, outer.relHead, fa2, sa1, inner.relHead, sa2)//relationTupleKey(sa1, inner.relHead, sa2)
-
+    val secondKey = relgramKey(fa1, outer.relHead, fa2, sa1, inner.relHead, sa2)
     if (addedSeconds.contains(secondKey)) {
-      //println("Ignoring: " + secondKey)
       return
     }
     addedSeconds += secondKey
@@ -310,14 +331,14 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
     val firstids = new mutable.HashSet[String]
     firstids ++= first.ids
-    val firstCoref = createOrGetRelationTuple(fa1, first.rel, fa2, outer, firstSentences, firstids, relationTuplesMap)
+    val firstCoref = createOrGetRelationTuple(fa1, first.rel, fa2, outer, firstSentences, firstids, relationTuplesMap, rtcountsMap)
 
     val secondSentences = new mutable.HashSet[String]
     secondSentences ++= second.sentences
 
     val secondids = new mutable.HashSet[String]
     secondids ++= second.ids
-    val secondCoref = createOrGetRelationTuple(sa1, second.rel, sa2, inner, secondSentences, secondids, relationTuplesMap)
+    val secondCoref = createOrGetRelationTuple(sa1, second.rel, sa2, inner, secondSentences, secondids, relationTuplesMap, rtcountsMap)
 
     val corefRgc = relgramCountsMap.getOrElseUpdate(relgramKey(firstCoref, secondCoref),
       new RelgramCounts(new Relgram(firstCoref, secondCoref),
@@ -365,7 +386,7 @@ object RelgramsExtractorTest{
       println("RelgramCounts size: " + relgramCounts.keys.size)
       println("Tuples size: " + tuplesCounts.keys.size)
       relgramCounts.foreach(rgcKV => relgramsWriter.println(relgramsString(rgcKV._2)))//prettyString))
-      tuplesCounts.foreach(tupleCount => tuplesWriter.println(tupleCount._2.prettyString))
+      tuplesCounts.foreach(tupleCount => tuplesWriter.println(tupleCount._2.tuple.prettyString + "\t" + tupleCount._2.count))
     })
     relgramsWriter.close()
     tuplesWriter.close()
