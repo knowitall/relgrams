@@ -251,7 +251,9 @@ case class RelgramCounts(relgram:Relgram, counts:scala.collection.mutable.Map[In
                                                 MapUtils.toIntIntCountsString(counts.toMap),
                                                 argCounts.toString)
 
-  def serialize:String = "%s%s%s%s%s".format(relgram.serialize, sep, serializeCounts(counts.toMap), sep, argCounts.serialize)
+  def serialize:String = "%s%s%s%s%s".format(relgram.serialize, sep,
+                                             serializeCounts(counts.toMap), sep,
+                                             argCounts.serialize)
 
   override def toString:String = "%s\t%s\t%s".format(relgram.toString,
                                                      MapUtils.toIntIntCountsString(counts.toMap),
