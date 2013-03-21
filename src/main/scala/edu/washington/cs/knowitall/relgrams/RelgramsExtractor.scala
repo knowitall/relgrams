@@ -131,10 +131,10 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
                                                               //.filter(record => notInferredPrepRelation(record))
                                                               //.sortBy(r => (r.sentid, r.extrid))
                                                               //.zipWithIndex
-    println("Docsize\t%d\t%d\t%d\t%d".format(document.tuplesDocument.tupleRecords.size,
+    /**println("Docsize\t%d\t%d\t%d\t%d".format(document.tuplesDocument.tupleRecords.size,
                                              prunedRecords.size,
                                              prunedRecords.map(r => r._1.sentid).max,
-                                             prunedRecords.map(r => r._2).max))
+                                             prunedRecords.map(r => r._2).max))*/
     val mentions = document.mentions
     val sentencesWithOffsets = if(equality){
     val trimdocument = TuplesDocumentGenerator.trimDocument(document.tuplesDocument)
