@@ -184,7 +184,11 @@ class TuplesDocumentGenerator {
       !specialCharsOnly(record.relHead) &&
       !specialCharsOnly(record.arg2Head)
     }
-    sRecords.filter(record => isGoodExtraction(record))
+    sRecords.filter(record => {
+      val out = isGoodExtraction(record)
+      if (!out) println("Skipped record: " + record)
+      out
+    })
   }
   def sortValue(record: TypedTuplesRecord): Int = {
     record.sentid * 1000 + record.extrid

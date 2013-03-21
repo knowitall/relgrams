@@ -117,7 +117,10 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     })
     Some(relgrams)
   }
-  def reduceRelgramCounts(relgramCounts: DList[Map[String, RelgramCounts]], maxSize:Int = 5): DList[RelgramCounts] = {
+  def reduceRelgramCounts(relgramCounts: DList[Map[String, RelgramCounts]],
+                          maxSize:Int,
+                          skipHashes:Boolean,
+                          skipSentences:Boolean): DList[RelgramCounts] = {
     val counter = new RelgramsCounter(maxSize)
     relgramCounts.flatten
                  .groupByKey[String, RelgramCounts]
@@ -145,6 +148,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     var maxSize = 5
     var equality = false
     var noequality = false
+    var skipHashes, skipSentences = false
     var tuplesOnly = false
     val parser = new OptionParser() {
       arg("inputPath", "hdfs input path", {str => inputPath = str})
@@ -154,6 +158,8 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
       opt("equality", "Argument equality tuples.", {str => equality = str.toBoolean})
       opt("noequality", "Count tuples without equality.", {str => noequality = str.toBoolean})
       opt("tuplesOnly", "Tuples extraction only.", {str => tuplesOnly = str.toBoolean})
+      opt("skipHashes", "Skip hashes.", {str => skipHashes = str.toBoolean})
+      opt("skipSentences", "Skip sentences.", {str => skipSentences = str.toBoolean})
     }
 
     if (!parser.parse(args)) return
@@ -168,7 +174,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
        case Some(extracts:DList[(Map[String, RelgramCounts], Map[String, RelationTuple])]) => {
 
          if(!tuplesOnly) {
-          val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1), maxSize)
+          val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1), maxSize, skipHashes, skipSentences)
           exportRelgrams(reducedRelgramCounts, outputPath)
          }
          val reducedTupleCounts   = reduceTuplesCounts(extracts.map(x => x._2), maxSize)

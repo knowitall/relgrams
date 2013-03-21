@@ -59,14 +59,18 @@ class RelgramsCounter(maxSize:Int) {
     }
   }
 
-  def reduceRelgramCounts(rgcs:Iterable[RelgramCounts]) = {
+  def reduceRelgramCounts(rgcs:Iterable[RelgramCounts], skipHashes:Boolean = false, skipSentences:Boolean = false) = {
+
     val outRGC: RelgramCounts = reduce(rgcs)
 
-    outRGC.relgram.first.hashes = Set[Int]()
-    outRGC.relgram.second.hashes = Set[Int]()
-    outRGC.relgram.first.sentences = Set[String]()
-    outRGC.relgram.second.sentences = Set[String]()
-
+    if (skipHashes){
+      outRGC.relgram.first.hashes = Set[Int]()
+      outRGC.relgram.second.hashes = Set[Int]()
+    }
+    if (skipSentences){
+      outRGC.relgram.first.sentences = Set[String]()
+      outRGC.relgram.second.sentences = Set[String]()
+    }
     if(outRGC != null) Some(outRGC) else None
   }
 

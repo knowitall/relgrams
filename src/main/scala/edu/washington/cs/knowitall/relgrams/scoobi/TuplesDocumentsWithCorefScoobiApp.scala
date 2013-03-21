@@ -18,6 +18,7 @@ import com.nicta.scoobi.core.DList
 import com.nicta.scoobi.Persist._
 import scopt.mutable.OptionParser
 import org.slf4j.LoggerFactory
+import edu.washington.cs.knowitall.tool.coref.Mention
 
 object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
 
@@ -100,6 +101,10 @@ object TuplesDocumentsWithCorefScoobiApp extends ScoobiApp{
                       (group._2._1.headOption, group._2._2.headOption) match {
                         case (Some(tds:TuplesDocument), Some(mds:TuplesDocumentWithCorefMentions)) => {
                           Some(new TuplesDocumentWithCorefMentions(tds, mds.sentenceOffsets, mds.mentions))
+                        }
+                        case (Some(tds:TuplesDocument), None) =>{
+                           println("Adding dummy mentions.")
+                           Some(new TuplesDocumentWithCorefMentions(tds, List[Int](), Map[Mention, List[Mention]]()))
                         }
                         case _ => {
                           println("Failed on group: " + group._1)

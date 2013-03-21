@@ -64,7 +64,7 @@ object RelgramMeasuresScoobiApp extends ScoobiApp {
 
       def flipRelgram(relgram:Relgram): Relgram = new Relgram(relgram.second, relgram.first)
       def flipArgCounts(argCounts:ArgCounts):ArgCounts = new ArgCounts(argCounts.secondArg1Counts, argCounts.secondArg2Counts,
-                                                              argCounts.firstArg1Counts, argCounts.firstArg2Counts)
+                                                                       argCounts.firstArg1Counts, argCounts.firstArg2Counts)
       val orelgram = flipRelgram(ab.relgram)
       val oargCounts = flipArgCounts(ab.argCounts)
       new RelgramCounts(orelgram, new mutable.HashMap[Int, Int](), oargCounts)

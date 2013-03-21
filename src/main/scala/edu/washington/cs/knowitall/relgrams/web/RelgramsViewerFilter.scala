@@ -201,11 +201,13 @@ object HtmlHelper{
     var sfSelected = ""
     var fSelected = ""
     var sSelected = ""
+    var fssfSelected = ""
 
     query.sortBy match {
       case "conditional" => conditionalSelected = "selected"
       case "fs" => fsSelected = "selected"
       case "sf" => sfSelected = "selected"
+      case "fs+sf" => sfSelected = "selected"
       case "f" => fSelected = "selected"
       case "s" => sSelected = "selected"
       case _ => fsSelected = "selected"
@@ -214,6 +216,7 @@ object HtmlHelper{
     optionString("conditional", conditionalSelected, "P(S|F)") +
     optionString("fs", fsSelected, "#(F,S)") +
     optionString("sf", sfSelected, "#(S,F)") +
+    optionString("fs+sf", sfSelected, "#(F,S)+#(S,F)") +
     optionString("f", fSelected, "#F") +
     optionString("s", sSelected, "#S") +
     "</select> Sort By\n"
@@ -321,7 +324,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
       <th class=""/><th class=""/>
       <th>Second Arg1</th><th>Second Rel</th><th>Second Arg2</th>
       <th class=""/><th class=""/>
-      <th>P(S|F)</th><th>#(F,S)</th><th>#(S,F)</th><th>#F</th><th>#S</th>
+      <th>P(S|F)</th><th>#(F,S)+#(S,F)</th><th>#(F,S)</th><th>#(S,F)</th><th>#F</th><th>#S</th>
       </tr>
     </thead>
     headElem.toString
@@ -418,6 +421,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
       {relationWithRelArgs(rgc.relgram.first, tfarg1Counts, tfarg2Counts)}<td class=""/><td class=""/>
       {relationWithRelArgs(rgc.relgram.second, tsarg1Counts, tsarg2Counts)}<td class=""/><td class=""/>
       <td>{measureVal}</td>
+      <td>{bitermCount}</td>
       <td>{fscount}</td>
       <td>{sfcount}</td>
       <td>{measures.firstCounts}</td>
@@ -511,6 +515,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     case "conditional" => affinities.firstUndir.conditional
     case "fs" => maxOrElse(measures.urgc.rgc.counts.values, 0).toDouble
     case "sf" => (maxOrElse(measures.urgc.bitermCounts.values, 0) - maxOrElse(measures.urgc.rgc.counts.values, 0)).toDouble
+    case "fs+sf" => maxOrElse(measures.urgc.bitermCounts.values, 0).toDouble
     case "f" => measures.firstCounts.toDouble
     case "s" => measures.secondCounts.toDouble
     case _ => affinities.firstUndir.conditional
@@ -518,11 +523,11 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   def pruneResults(query:RelgramsQuery, results:Seq[(Measures, AffinityMeasures)]) = {
     def applyFilters(in:Seq[(Measures, AffinityMeasures)]) = in.filter(ma => !isIdentityRelgram(ma._1.urgc.rgc.relgram))
-                                                              .filter(ma => !hasPronounArgs(ma._1.urgc.rgc.relgram))
-                                                             .filter(ma => aboveThreshold(ma._1.urgc))
-                                                             .filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
-                                                             .filter(ma => !hasTypeQuantity(ma._1.urgc.rgc.relgram))
-                                                             .filter(ma => equalityTypesAgree(ma._1.urgc.rgc.relgram))
+                                                               .filter(ma => !hasPronounArgs(ma._1.urgc.rgc.relgram))
+                                                               .filter(ma => aboveThreshold(ma._1.urgc))
+                                                               .filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
+                                                               .filter(ma => !hasTypeQuantity(ma._1.urgc.rgc.relgram))
+                                                               .filter(ma => equalityTypesAgree(ma._1.urgc.rgc.relgram))
 
     def removeDuplicates(in:Seq[(Measures, AffinityMeasures)]) = {
       var keys = Set[String]()
