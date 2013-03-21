@@ -172,7 +172,6 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     import RelgramCounts._
     extractRelgramCountsAndTuples(tupleDocuments, maxWindow, equality, noequality) match {
        case Some(extracts:DList[(Map[String, RelgramCounts], Map[String, RelationTuple])]) => {
-
          if(!tuplesOnly) {
           val reducedRelgramCounts = reduceRelgramCounts(extracts.map(x => x._1), maxSize, skipHashes, skipSentences)
           exportRelgrams(reducedRelgramCounts, outputPath)
