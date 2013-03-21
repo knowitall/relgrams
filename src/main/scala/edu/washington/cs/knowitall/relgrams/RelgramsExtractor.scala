@@ -23,6 +23,7 @@ import scala.Some
 import edu.washington.cs.knowitall.relgrams.utils.MapUtils._
 import utils.MapUtils
 import edu.washington.cs.knowitall.tool.coref.Mention
+import edu.washington.cs.knowitall.tool.postag.PostaggedToken
 
 class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
@@ -45,35 +46,37 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
 
   def addToSentences(relationTuple: RelationTuple, sentence: String) {
-    relationTuple.sentences += sentence
-    if (relationTuple.sentences.size > 5){
-      relationTuple.sentences = relationTuple.sentences.drop(1)
-    }
+    if(relationTuple.sentences.size < 5) relationTuple.sentences += sentence
+
   }
 
   def addToIds(tuple: RelationTuple, id: String){
-    tuple.ids += id
-    if(tuple.ids.size > 5){
-      tuple.ids = tuple.ids.drop(1)
-    }
+    if(tuple.ids.size < 5) tuple.ids += id
   }
 
 
-  def createOrGetRelationTuple(arg1:String, rel:String, arg2:String, record:TypedTuplesRecord, sentences:mutable.Set[String], ids:mutable.Set[String], relationTuplesMap:mutable.HashMap[String, RelationTuple]) = {
+  def createOrGetRelationTuple(arg1:String, rel:String, arg2:String,
+                               record:TypedTuplesRecord,
+                               sentences:mutable.Set[String],
+                               ids:mutable.Set[String],
+                               relationTuplesMap:mutable.HashMap[String, RelationTuple]) = {
     val relKey = relationTupleKey(arg1, rel, arg2)
     def newCountsMap = new mutable.HashMap[String, Int]
-    relationTuplesMap.get(relKey) match {
-      case Some(relationTuple:RelationTuple) => relationTuple
+    val relationTuple = relationTuplesMap.get(relKey) match {
+      case Some(relationTuple:RelationTuple) => {
+        relationTuple
+      }
       case None => {
         val relationTuple = new RelationTuple(arg1, rel, arg2, record.hashes, sentences, ids, newCountsMap,newCountsMap)
-        addToArgCounts(relationTuple.arg1HeadCounts, record.arg1Head)
-        addToArgCounts(relationTuple.arg2HeadCounts, record.arg2Head)
-        addToSentences(relationTuple, record.sentence)
-        addToIds(relationTuple, record.docid + "-" + record.sentid + "-" + record.extrid)
         relationTuplesMap += relKey -> relationTuple
         relationTuple
       }
     }
+    addToArgCounts(relationTuple.arg1HeadCounts, record.arg1Head)
+    addToArgCounts(relationTuple.arg2HeadCounts, record.arg2Head)
+    addToSentences(relationTuple, record.sentence)
+    addToIds(relationTuple, record.docid + "-" + record.sentid + "-" + record.extrid)
+    relationTuple
   }
 
 
@@ -93,37 +96,34 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
   def extractRelgramsFromDocument(document:TuplesDocumentWithCorefMentions): (Map[String, RelgramCounts], Map[String, RelationTuple]) = {
 
-    //val docid = document.tuplesDocument.docid
-
     var relgramCountsMap = new mutable.HashMap[String, RelgramCounts]()
     var relationTuplesMap = new mutable.HashMap[String, RelationTuple]()
-
-    def printRecord(record:TypedTuplesRecord) = println("%s-%s\t%s\t%s\t%s\t%s\t%s".format(record.sentid, record.extrid, record.arg1Head, record.relHead, record.arg2Head, record.arg1Types, record.arg2Types))
 
     def assignIndex(records:Seq[TypedTuplesRecord]) = {
       var index = 0
       var prevSentId = 0
       var prevExtrId = 0
-      records.map(record => {
+      records.sortBy(r => (r.sentid, r.extrid))
+             .map(record => {
         if (record.sentid > prevSentId || record.extrid > prevExtrId) index = index + 1
         prevSentId = record.sentid
         prevExtrId = record.extrid
-        //println("(%d, %d)=%d [%s,%s,%s]".format(record.sentid, record.extrid, index, record.arg1Head, record.relHead, record.arg2Head))
         (record, index)
       })
     }
-    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = assignIndex(document.tuplesDocument.tupleRecords)
+    val prepositions = Set[String] ("in", "on", "at", "over", "by", "after", "near", "of")
+    def hasPreposition(rel:String) = rel.split(" ").find(x => prepositions.contains(x))
+    def hasInferredPrepRelation(record:TypedTuplesRecord) = hasPreposition(record.relHead) match {
+      case Some(x:String) => !record.sentence.split(" ").contains(x)
+      case None => false
+    }
+    val prunedRecords:Seq[(TypedTuplesRecord, Int)] = assignIndex(document.tuplesDocument
+                                                                          .tupleRecords
+                                                                          .filter(record => !hasInferredPrepRelation(record)))
 
                                                               //.filter(record => notInferredPrepRelation(record))
                                                               //.sortBy(r => (r.sentid, r.extrid))
-
                                                               //.zipWithIndex
-
-    //println("********original tuples(********")
-    //document.tuplesDocument.tupleRecords.foreach(printRecord(_))
-    //println("******** pruned tuples **********")
-    //prunedRecords.foreach(r => printRecord(r._1))
-    //println("*******")
     val mentions = document.mentions
     val sentencesWithOffsets = if(equality){
     val trimdocument = TuplesDocumentGenerator.trimDocument(document.tuplesDocument)

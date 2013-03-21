@@ -313,18 +313,18 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   val dropCSS ="span.dropt {border-bottom: thin dotted; background: #ffeedd;}\nspan.dropt:hover {text-decoration: none; background: #ffffff; z-index: 6; }\nspan.dropt span {position: absolute; left: -9999px;\n  margin: 20px 0 0 0px; padding: 3px 3px 3px 3px;\n  border-style:solid; border-color:black; border-width:1px; z-index: 6;}\nspan.dropt:hover span {left: 2%; background: #ffffff;} \nspan.dropt span {position: absolute; left: -9999px;\n  margin: 4px 0 0 0px; padding: 3px 3px 3px 3px; \n  border-style:solid; border-color:black; border-width:1px;}\nspan.dropt:hover span {margin: 20px 0 0 170px; background: #ffffff; z-index:6;} "
   val cssSoft = "<style type=\"text/css\">table.soft {\n\tborder-spacing: 0px;}\n.soft th, .soft td {\n\tpadding: 5px 30px 5px 10px;\n\tborder-spacing: 0px;\n\tfont-size: 90%;\n\tmargin: 0px;}\n.soft th, .soft td {\n\ttext-align: left;\n\tbackground-color: #e0e9f0;\n\tborder-top: 1px solid #f1f8fe;\n\tborder-bottom: 1px solid #cbd2d8;\n\tborder-right: 1px solid #cbd2d8;}\n.soft tr.head th {\n\tcolor: #fff;\n\tbackground-color: #90b4d6;\n\tborder-bottom: 2px solid #547ca0;\n\tborder-right: 1px solid #749abe;\n\tborder-top: 1px solid #90b4d6;\n\ttext-align: center;\n\ttext-shadow: -1px -1px 1px #666666;\n\tletter-spacing: 0.15em;}\n.soft td {\n\ttext-shadow: 1px 1px 1px #ffffff;}\n.soft tr.even td, .soft tr.even th {\n\tbackground-color: #3E698E;}\n.soft tr.head th:first-child {\n\t-webkit-border-top-left-radius: 5px;\n\t-moz-border-radius-topleft: 5px;\n\tborder-top-left-radius: 5px;}\n.soft tr.head th:last-child {\n\t-webkit-border-top-right-radius: 5px;\n\t-moz-border-radius-topright: 5px;\n\tborder-top-right-radius: 5px;}</style>"
-  val cssFinancial ="<style type=\"text/css\">/* financial or timetable */\n\nbody {\n\tfont-family: Arial, Verdana, sans-serif;\n\tcolor: #111111;}\n\ntable.financial {\n\twidth: 1200px;}\n\n.financial th, .financial td {\n\tpadding: 7px 10px 10px 10px;}\n\n.financial th {\n\ttext-transform: uppercase;\n\tletter-spacing: 0.1em;\n\tfont-size: 90%;\n\tborder-bottom: 2px solid #111111;\n\tborder-top: 1px solid #999;\n\ttext-align: left;}\n\n.financial tr.even {\n\tbackground-color: #efefef;}\n\n.financial tr:hover {\n\tbackground-color: #c3e6e5;}\n\n.financial tfoot td {\n\tborder-top: 2px solid #111111;\n\tborder-bottom: 1px solid #999;}\n\n.money {\n\ttext-align: right;}</style>"
+  val cssFinancial ="<style type=\"text/css\">/* financial or timetable */\n\nbody {\n\tfont-family: Arial, Verdana, sans-serif;\n\tcolor: #111111;}\n\ntable.financial {\n\twidth: 1400px;}\n\n.financial th, .financial td {\n\tpadding: 7px 10px 10px 10px;}\n.financial th {\n\ttext-transform: uppercase;\n\tletter-spacing: 0.1em;\n\tfont-size: 90%;\n\tborder-bottom: 2px solid #111111;\n\tborder-top: 1px solid #999;\n\ttext-align: left;}\n\n.financial tr.even {\n\tbackground-color: #efefef;}\n\n.financial tr:hover {\n\tbackground-color: #c3e6e5;}\n\n.financial tfoot td {\n\tborder-top: 2px solid #111111;\n\tborder-bottom: 1px solid #999;}\n\n.money {\n\ttext-align: right;}</style>"
   val tableTags = "<table class=\"financial\">\n%s\n</table>\n"
   //def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("Measure", "#(F,S)", "#(S,F)", "#(F,*)", "#(S,*)")
 
   def headerRow(measure:MeasureName.MeasureName) = {
     val headElem = <thead>
       <tr>
-      <th>First Arg1</th><th>First Rel</th><th>First Arg2</th>
-      <th class=""/><th class=""/>
-      <th>Second Arg1</th><th>Second Rel</th><th>Second Arg2</th>
-      <th class=""/><th class=""/>
-      <th>P(S|F)</th><th>#(F,S)+#(S,F)</th><th>#(F,S)</th><th>#(S,F)</th><th>#F</th><th>#S</th>
+      <th witdh="5%">First Arg1</th><th witdh="25%">First Rel</th><th witdh="5%">First Arg2</th>
+      <th width="0.0%"/>
+      <th witdh="5%">Second Arg1</th><th witdh="25%">Second Rel</th><th witdh="5%">Second Arg2</th>
+      <th width="0.0%"/>
+      <th witdh="5%">P(S|F)</th><th width="5%">#(F,S)+#(S,F)</th><th width="5%">#(F,S)</th><th width="5%">#(S,F)</th><th width="5%">#F</th><th width="5%">#S</th>
       </tr>
     </thead>
     headElem.toString
@@ -382,9 +382,9 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     val sentence = "Ids: %s\n\nSentence: %s".format(tuple.ids.toSeq.sortBy(id => id).take(3).mkString(","), tuple.sentences.toSeq.sortBy(s => s).headOption.getOrElse("No sentence found."))
     val arg1Style = argStyle(tuple.arg1)
     val arg2Style = argStyle(tuple.arg2)
-     <td TITLE={arg1TopArgs}><span style={arg1Style}>{arg1}</span></td>
-     <td TITLE={sentence}><span style={relstyle}>{rel}</span></td>
-     <td TITLE={arg2TopArgs}><span style={arg2Style}>{arg2}</span></td>
+     <td TITLE={arg1TopArgs} witdh="5%"><span style={arg1Style}>{arg1}</span></td>
+     <td TITLE={sentence} witdh="25%"><span style={relstyle}>{rel}</span></td>
+     <td TITLE={arg2TopArgs} witdh="5%"><span style={arg2Style}>{arg2}</span></td>
 
 
   }
@@ -415,17 +415,17 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
     var tsarg2Counts = sarg2Counts.filter(x => !sarg1Counts.contains(x._1))
     if(tsarg2Counts.isEmpty) tsarg2Counts = sarg2Counts
-
+    val valStyle = "text-align: center"
     val evenString = if(even) "even" else ""
     <tr class={evenString}>
-      {relationWithRelArgs(rgc.relgram.first, tfarg1Counts, tfarg2Counts)}<td class=""/><td class=""/>
-      {relationWithRelArgs(rgc.relgram.second, tsarg1Counts, tsarg2Counts)}<td class=""/><td class=""/>
-      <td>{measureVal}</td>
-      <td>{bitermCount}</td>
-      <td>{fscount}</td>
-      <td>{sfcount}</td>
-      <td>{measures.firstCounts}</td>
-      <td>{measures.secondCounts}</td>
+      {relationWithRelArgs(rgc.relgram.first, tfarg1Counts, tfarg2Counts)}<td/>
+      {relationWithRelArgs(rgc.relgram.second, tsarg1Counts, tsarg2Counts)}<td/>
+      <td style={valStyle} witdh="5%">{measureVal}</td>
+      <td style={valStyle} witdh="5%">{bitermCount}</td>
+      <td style={valStyle} witdh="5%">{fscount}</td>
+      <td style={valStyle} witdh="5%">{sfcount}</td>
+      <td style={valStyle} witdh="5%">{measures.firstCounts}</td>
+      <td style={valStyle} witdh="5%">{measures.secondCounts}</td>
     </tr>
 
 
@@ -531,7 +531,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
     def removeDuplicates(in:Seq[(Measures, AffinityMeasures)]) = {
       var keys = Set[String]()
-      def key(m:Measures) = m.urgc.rgc.prettyString
+      def key(m:Measures) = m.urgc.rgc.relgram.prettyString
       in.flatMap(x => {
         val k= key(x._1)
         if(!keys.contains(k)) {
