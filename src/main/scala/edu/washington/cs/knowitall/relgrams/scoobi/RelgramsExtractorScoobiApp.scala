@@ -167,7 +167,7 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     assert(equality || noequality, "Both equality or noequality flags are false. One of them must be set true.")
 
     import TuplesDocumentWithCorefMentions._
-    var tupleDocuments = loadTupleDocuments(inputPath)
+    val tupleDocuments = loadTupleDocuments(inputPath)
 
     import RelgramCounts._
     extractRelgramCountsAndTuples(tupleDocuments, maxWindow, equality, noequality) match {
