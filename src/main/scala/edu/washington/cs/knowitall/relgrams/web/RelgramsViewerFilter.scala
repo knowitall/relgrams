@@ -457,7 +457,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   var minFreq = 0
   import edu.washington.cs.knowitall.relgrams.utils.CollectionUtils._
-  def aboveThreshold(urgc:UndirRelgramCounts) = maxOrElse(urgc.rgc.counts.values, 0) > minFreq
+  def aboveThreshold(urgc:UndirRelgramCounts) = maxOrElse(urgc.bitermCounts.values, 0) > minFreq
 
   def isIdentityRelgram(relgram:Relgram) = {
     relgram.first.isIdenticalTo(relgram.second)

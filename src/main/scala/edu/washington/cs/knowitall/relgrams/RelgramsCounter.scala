@@ -23,8 +23,10 @@ class RelgramsCounter(maxSize:Int) {
   }
 
   def updateHashes(mergeWith: RelgramCounts, toMerge: RelgramCounts){
-    mergeWith.relgram.first.hashes ++= toMerge.relgram.first.hashes
-    mergeWith.relgram.second.hashes ++= toMerge.relgram.second.hashes
+
+    if (mergeWith.relgram.first.hashes.size < 10000) mergeWith.relgram.first.hashes ++= toMerge.relgram.first.hashes
+    if(mergeWith.relgram.second.hashes.size < 10000) mergeWith.relgram.second.hashes ++= toMerge.relgram.second.hashes
+
   }
 
   def mergeArgCounts(mergeWith: RelgramCounts, toMerge: RelgramCounts) {
@@ -42,10 +44,10 @@ class RelgramsCounter(maxSize:Int) {
 
   def mergeIds(mergeWith: RelgramCounts, toMerge: RelgramCounts, maxNumberOfIds:Int){
     if (mergeWith.relgram.first.ids.size < maxNumberOfIds){
-      mergeWith.relgram.second.ids ++= toMerge.relgram.second.ids
+      mergeWith.relgram.first.ids ++= toMerge.relgram.first.ids
     }
     if (mergeWith.relgram.second.ids.size < maxNumberOfIds){
-      mergeWith.relgram.first.ids ++= toMerge.relgram.first.ids
+      mergeWith.relgram.second.ids ++= toMerge.relgram.second.ids
     }
   }
 
