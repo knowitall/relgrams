@@ -417,9 +417,8 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     if(tsarg2Counts.isEmpty) tsarg2Counts = sarg2Counts
 
     /** FOX ME:::::::::::::::::::::**/
-    tsarg1Counts = new mutable.HashMap[String, Int]()
-    tsarg2Counts = new mutable.HashMap[String, Int]()
-
+    //tsarg1Counts = new mutable.HashMap[String, Int]()
+    //tsarg2Counts = new mutable.HashMap[String, Int]()
     /** FOX ME:::::::::::::::::::::**/
 
     val valStyle = "text-align: center"
