@@ -229,7 +229,7 @@ object HtmlHelper{
         val selected = if (i == query.measureIndex) "selected" else ""
         """<option value="%d" %s>%d</option>\n""".format(i, selected, i)
       }).mkString("\n") +
-      "</select>Window -- Filters out rel-grams that do not occur %s times within this window<br/><br/><br/>\n".format(minFreq)
+      "</select> Window -- Show relgrams that occur at least %s times within this window<br/><br/><br/>\n".format(minFreq+1)
 
   }
 
@@ -283,6 +283,7 @@ object HtmlHelper{
     loginForm += "<br/><br/>"
 
     loginForm += equalityCheckBoxes(query).toString//equalityOptions(query)
+    loginForm += "<br/>"
     loginForm += "<br/>"
     loginForm += mesureIndexOptions(query, minFreq)
     loginForm += "<br/>"
@@ -492,9 +493,16 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
   def isPronounArg(arg:String) = pronouns.contains(arg)
 
 
+  def summary(results: Seq[(Measures, AffinityMeasures)]): String = {
+    val numResults = results.size
+    "Found %d rel-grams <br/>".format(numResults)
+  }
+
   def renderSearchResults(measureName:String, query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
     var even = false
-    cssSoft + cssFinancial + wrapResultsTableTags(headerRow(query.measure, query.measureIndex) + "\n<br/>\n<tbody>" +
+    cssSoft + cssFinancial +
+    summary(results._2) +
+    wrapResultsTableTags(headerRow(query.measure, query.measureIndex) + "\n<br/>\n<tbody>" +
                          results._2.map(ma => {
                            even = !even
                            toResultsRow(measureName, query, ma._1, ma._2, even)
