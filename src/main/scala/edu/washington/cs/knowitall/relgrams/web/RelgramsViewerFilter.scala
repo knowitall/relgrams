@@ -307,7 +307,7 @@ object HtmlHelper{
 object RelgramsViewerFilter extends unfiltered.filter.Plan {
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  var solrManager = new SolrSearchWrapper("http://rv-n15.cs.washington.edu:10000/solr/relgrams", "http://rv-n15.cs.washington.edu:10000/solr/mar24-tupledocuments")
+  var solrManager = new SolrSearchWrapper("http://rv-n15.cs.washington.edu:10000/solr/mar24-relgrams", "http://rv-n15.cs.washington.edu:10000/solr/mar24-tupledocuments")
 
   def wrapHtml(content:String) = "<html>" + content + "</html>"
 

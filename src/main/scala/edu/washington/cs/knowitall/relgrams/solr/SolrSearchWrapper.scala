@@ -72,6 +72,7 @@ class SolrSearchWrapper(solrBaseUrl:String, solrDocUrl:String) {
       case Some(solrQuery:SolrQuery) => {
         logger.info("RelgramsQuery: " + query.toHTMLString)
         logger.info("SolrQuery: " + solrQuery)
+        logger.info("Server ping: " + server.ping())
         val results = server.query(solrQuery)
         logger.info("Query: %s returned %d solr documents.".format(solrQuery.toString, results.getResults.size))
         results.getResults.flatMap(result => {
