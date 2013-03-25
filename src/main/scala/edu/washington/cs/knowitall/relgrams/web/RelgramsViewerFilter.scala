@@ -307,7 +307,7 @@ object HtmlHelper{
 object RelgramsViewerFilter extends unfiltered.filter.Plan {
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  var solrManager = new SolrSearchWrapper("http://rv-n15.cs.washington.edu:10000/solr/mar24-relgrams", "http://rv-n15.cs.washington.edu:10000/solr/mar24-tupledocuments")
+  var solrManager:SolrSearchWrapper = null//new SolrSearchWrapper("http://rv-n15.cs.washington.edu:10000/solr/mar24-relgrams", "http://rv-n15.cs.washington.edu:10000/solr/mar24-tupledocuments")
 
   def wrapHtml(content:String) = "<html>" + content + "</html>"
 
@@ -597,8 +597,8 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
       opt("host", "port to run on.", {str => host = str})
       opt("minFreq", "minimum frequency threshold", {str => minFreq = str.toInt})
     }
-    solrManager =  new SolrSearchWrapper(relgramsURL, docsURL)
     if (!parser.parse(args)) return
+    solrManager =  new SolrSearchWrapper(relgramsURL, docsURL)
     unfiltered.netty.Http(port).plan(intentVal).run()
   }
 

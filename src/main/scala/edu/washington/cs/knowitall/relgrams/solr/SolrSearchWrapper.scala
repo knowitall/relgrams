@@ -25,11 +25,13 @@ class SolrSearchWrapper {
   val logger = LoggerFactory.getLogger(this.getClass)
   def this(solrBaseUrl:String, solrDocUrl:String) = {
     this()
+    logger.info("SolrBaseUrl: " + solrBaseUrl)
+    logger.info("SolrDocUrl: " + solrDocUrl)
     server = new HttpSolrServer(solrBaseUrl)
     server.setParser(new XMLResponseParser)
     logger.info("Initialized server: " + server.ping())
-    docServer = new HttpSolrServer(solrDocUrl)
 
+    docServer = new HttpSolrServer(solrDocUrl)
     docServer.setParser(new XMLResponseParser)
     logger.info("Initialized doc server: " + docServer.ping())
   }
@@ -78,8 +80,6 @@ class SolrSearchWrapper {
       case Some(solrQuery:SolrQuery) => {
         logger.info("RelgramsQuery: " + query.toHTMLString)
         logger.info("SolrQuery: " + solrQuery)
-
-        logger.info("Server ping: " + server.ping())
         val results = server.query(solrQuery)
         logger.info("Query: %s returned %d solr documents.".format(solrQuery.toString, results.getResults.size))
         results.getResults.flatMap(result => {
