@@ -222,14 +222,14 @@ object HtmlHelper{
     "</select> Sort By\n"
 
   }
-  def mesureIndexOptions(query: RelgramsQuery): String = {
+  def mesureIndexOptions(query: RelgramsQuery, minFreq:Int): String = {
 
     "<select name=\"k\">" +
-      (0 until 10).map(i => {
+      (1 until 51).map(i => {
         val selected = if (i == query.measureIndex) "selected" else ""
-        """<option value="%d" %s>%d</option>\n""".format(i, selected, (i+1))
+        """<option value="%d" %s>%d</option>\n""".format(i, selected, i)
       }).mkString("\n") +
-      "</select>Window<br/><br/><br/>\n"
+      "</select>Window -- Filters out rel-grams that do not occur %s times within this window<br/><br/><br/>\n".format(minFreq)
 
   }
 
@@ -261,7 +261,7 @@ object HtmlHelper{
               <a href={exampleURL3}>(,pitch,)</a>
               <br/>
               </span>
-  def createForm(query:RelgramsQuery, host:String, port:Int): String = {
+  def createForm(query:RelgramsQuery, minFreq:Int, host:String, port:Int): String = {
 
     //val exampleURL = """http://%s:%s/relgrams?arg1="xvar+type+person"&rel="die+in"&arg2="type+time+unit"&sortBy=fs&equalityOption=equality&search=search""".format(host, port)
     val arg1 = scrubHTML(query.relationTuple.arg1)
@@ -284,7 +284,7 @@ object HtmlHelper{
 
     loginForm += equalityCheckBoxes(query).toString//equalityOptions(query)
     loginForm += "<br/>"
-    loginForm += mesureIndexOptions(query)
+    loginForm += mesureIndexOptions(query, minFreq)
     loginForm += "<br/>"
     /**loginForm += viewOptions(query)
     loginForm += measureOptions(query)
@@ -469,7 +469,9 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   var minFreq = 0
   import edu.washington.cs.knowitall.relgrams.utils.CollectionUtils._
-  def aboveThreshold(urgc:UndirRelgramCounts) = maxOrElse(urgc.bitermCounts.values, 0) > minFreq
+  def aboveThreshold(urgc:UndirRelgramCounts, window:Int) = {
+    urgc.bitermCounts.getOrElse(window, 0) > minFreq
+  }//maxOrElse(urgc.bitermCounts.values, 0) > minFreq
 
   def isIdentityRelgram(relgram:Relgram) = {
     relgram.first.isIdenticalTo(relgram.second)
@@ -536,7 +538,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
   def pruneResults(query:RelgramsQuery, results:Seq[(Measures, AffinityMeasures)]) = {
     def applyFilters(in:Seq[(Measures, AffinityMeasures)]) = in.filter(ma => !isIdentityRelgram(ma._1.urgc.rgc.relgram))
                                                                .filter(ma => !hasPronounArgs(ma._1.urgc.rgc.relgram))
-                                                               .filter(ma => aboveThreshold(ma._1.urgc))
+                                                               .filter(ma => aboveThreshold(ma._1.urgc, query.measureIndex))
                                                                .filter(ma => agreesWithEqualityOption(query.equalityOption, ma))
                                                                .filter(ma => !hasTypeQuantity(ma._1.urgc.rgc.relgram))
                                                                .filter(ma => equalityTypesAgree(ma._1.urgc.rgc.relgram))
@@ -564,7 +566,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
       val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
       val sortedResults = results._2.sortBy(ma => sortByMeasure(ma, sortBy))
-      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery, "localhost", 10000) + "<br/><br/>"
+      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery, minFreq, "localhost", 10000) + "<br/><br/>"
         + renderSearchResults("conditional", relgramsQuery, (results._1, sortedResults))))
         //"" + "Arg1: " + relgramsQuery.toHTMLString) )
     }
@@ -580,7 +582,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
       val results = if (isNonEmptyQuery(relgramsQuery)) search(relgramsQuery) else ("", Seq[(Measures, AffinityMeasures)]())
       val sortedResults = results._2.sortBy(ma => sortByMeasure(ma, sortBy))
       val prunedResults = pruneResults(relgramsQuery, sortedResults)
-      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery,host, port) + "<br/>"
+      ResponseString(wrapHtml(HtmlHelper.createForm(relgramsQuery, minFreq, host, port) + "<br/>"
                   + renderSearchResults("conditional", relgramsQuery, (results._1, prunedResults))))
       //"" + "Arg1: " + relgramsQuery.toHTMLString) )
     }
