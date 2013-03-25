@@ -54,6 +54,7 @@ object IndexScoobiApp extends ScoobiApp {
       new ToSolrDocument(solrServer)
     }
 
+
     import Measures._
     val output:DList[Measures]  = TextInput.fromTextFile(inputPath).flatMap(line => Measures.fromSerializedString(line) match {
       case Some(measures:Measures) => {

@@ -96,10 +96,11 @@ object MapUtils {
 
     var cmap = new mutable.HashMap[Int, Int]()
     updateCounts(cmap, 1, 0)
-    updateCounts(cmap, 10, 1)
-    updateCounts(cmap, 20, 1)
-    updateCounts(cmap, 30, 2)
-    distributeCounts(cmap, 50)
+    updateCounts(cmap, 1, 1)
+    updateCounts(cmap, 2, 1)
+    updateCounts(cmap, 3, 2)
+    println("Map:%s".format(toIntIntCountsString(cmap)))
+    distributeCounts(cmap, 5)
     println("Map:%s".format(toIntIntCountsString(cmap)))
   }
   def updateCounts[A, B](counts:scala.collection.mutable.Map[A, B], key:A, count:B)(implicit numeric: Numeric[B]){

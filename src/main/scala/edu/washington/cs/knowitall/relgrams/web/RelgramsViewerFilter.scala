@@ -284,6 +284,8 @@ object HtmlHelper{
 
     loginForm += equalityCheckBoxes(query).toString//equalityOptions(query)
     loginForm += "<br/>"
+    loginForm += mesureIndexOptions(query)
+    loginForm += "<br/>"
     /**loginForm += viewOptions(query)
     loginForm += measureOptions(query)
     loginForm += mesureIndexOptions(query)
@@ -305,7 +307,7 @@ object HtmlHelper{
 object RelgramsViewerFilter extends unfiltered.filter.Plan {
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  var solrManager = new SolrSearchWrapper("http://rv-n15.cs.washington.edu:10000/solr/relgrams")
+  var solrManager = new SolrSearchWrapper("http://rv-n15.cs.washington.edu:10000/solr/relgrams", "http://rv-n15.cs.washington.edu:10000/solr/mar24-tupledocuments")
 
   def wrapHtml(content:String) = "<html>" + content + "</html>"
 
@@ -317,14 +319,16 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
   val tableTags = "<table class=\"financial\">\n%s\n</table>\n"
   //def headerRow(measure:MeasureName.MeasureName) = "<tr><td><b>First (F)</b></td><td><b>Second (S)</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>".format("Measure", "#(F,S)", "#(S,F)", "#(F,*)", "#(S,*)")
 
-  def headerRow(measure:MeasureName.MeasureName) = {
+  def headerRow(measure:MeasureName.MeasureName, k:Int) = {
+    val windowName = "#%s(F,S)+#%s(S,F)".format(k, k)
     val headElem = <thead>
       <tr>
       <th witdh="5%">First Arg1</th><th witdh="25%">First Rel</th><th witdh="5%">First Arg2</th>
       <th width="0.0%"/>
       <th witdh="5%">Second Arg1</th><th witdh="25%">Second Rel</th><th witdh="5%">Second Arg2</th>
       <th width="0.0%"/>
-      <th witdh="5%">P(S|F)</th><th width="5%">#(F,S)+#(S,F)</th><th width="5%">#(F,S)</th><th width="5%">#(S,F)</th><th width="5%">#F</th><th width="5%">#S</th>
+      <th width="5%">{windowName}</th>
+      <th width="5%">P(S|F)</th><th width="5%">#(F,S)+#(S,F)</th><th width="5%">#(F,S)</th><th width="5%">#(S,F)</th><th width="5%">#F</th><th width="5%">#S</th>
       </tr>
     </thead>
     headElem.toString
@@ -396,6 +400,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     val rgc = undirRGC.rgc
     val fscount = maxOrElse(undirRGC.rgc.counts.values, 0)
     val bitermCount = maxOrElse(undirRGC.bitermCounts.values, 0)
+    val bitermCountsAtK = undirRGC.bitermCounts.getOrElse(query.measureIndex, 0)
     val sfcount = bitermCount - fscount
     var farg1Counts: mutable.Map[String, Int] = rgc.argCounts.firstArg1Counts
     var farg2Counts: mutable.Map[String, Int] = rgc.argCounts.firstArg2Counts
@@ -426,12 +431,13 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
     <tr class={evenString}>
       {relationWithRelArgs(rgc.relgram.first, tfarg1Counts, tfarg2Counts)}<td/>
       {relationWithRelArgs(rgc.relgram.second, tsarg1Counts, tsarg2Counts)}<td/>
-      <td style={valStyle} witdh="5%">{measureVal}</td>
-      <td style={valStyle} witdh="5%">{bitermCount}</td>
-      <td style={valStyle} witdh="5%">{fscount}</td>
-      <td style={valStyle} witdh="5%">{sfcount}</td>
-      <td style={valStyle} witdh="5%">{measures.firstCounts}</td>
-      <td style={valStyle} witdh="5%">{measures.secondCounts}</td>
+      <td style={valStyle} width="5%">{bitermCountsAtK}</td>
+      <td style={valStyle} width="5%">{measureVal}</td>
+      <td style={valStyle} width="5%">{bitermCount}</td>
+      <td style={valStyle} width="5%">{fscount}</td>
+      <td style={valStyle} width="5%">{sfcount}</td>
+      <td style={valStyle} width="5%">{measures.firstCounts}</td>
+      <td style={valStyle} width="5%">{measures.secondCounts}</td>
     </tr>
 
 
@@ -486,7 +492,7 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
 
   def renderSearchResults(measureName:String, query:RelgramsQuery, results:(String, Seq[(Measures, AffinityMeasures)])) = {
     var even = false
-    cssSoft + cssFinancial + wrapResultsTableTags(headerRow(query.measure) + "\n<br/>\n<tbody>" +
+    cssSoft + cssFinancial + wrapResultsTableTags(headerRow(query.measure, query.measureIndex) + "\n<br/>\n<tbody>" +
                          results._2.map(ma => {
                            even = !even
                            toResultsRow(measureName, query, ma._1, ma._2, even)
@@ -583,12 +589,15 @@ object RelgramsViewerFilter extends unfiltered.filter.Plan {
   def main(args:Array[String]){
 
     //var port = 10000
+    var relgramsURL, docsURL = ""
     val parser = new OptionParser() {
-      arg("solrURL", "hdfs input path", {str => solrManager = new SolrSearchWrapper(str)})
+      arg("solrURL", "hdfs input path", {str => relgramsURL = str})
+      arg("solrDocURL", "hdfs input path", {str => docsURL = str})
       opt("port", "port to run on.", {str => port = str.toInt})
       opt("host", "port to run on.", {str => host = str})
       opt("minFreq", "minimum frequency threshold", {str => minFreq = str.toInt})
     }
+    solrManager =  new SolrSearchWrapper(relgramsURL, docsURL)
     if (!parser.parse(args)) return
     unfiltered.netty.Http(port).plan(intentVal).run()
   }

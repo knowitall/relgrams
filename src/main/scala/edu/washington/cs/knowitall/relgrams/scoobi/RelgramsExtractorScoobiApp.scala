@@ -109,8 +109,6 @@ object RelgramsExtractorScoobiApp extends ScoobiApp{
     import TuplesDocumentWithCorefMentions._
     import RelgramCounts._
     import RelationTuple._
-    val counter = new RelgramsCounter(maxSize=5)
-
     val relgrams: DList[(Map[String, RelgramCounts], Map[String, RelationTupleCounts])] = tuplesDocuments.map(document => {
       val extractor = new RelgramsExtractor(maxWindow, equality, noequality)
       extractor.extractRelgramsFromDocument(document)

@@ -193,7 +193,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
 
       getRecordsIterator.filter(innerIndex => {
                            val inner = innerIndex._1
-                           val filterVal = areFromDifferentExtractions(outer, innerIndex._1)
+                           val filterVal = areFromDifferentExtractions(outer, inner)
                            filterVal
                         })
                         .filter(innerIndex => {
@@ -202,7 +202,7 @@ class RelgramsExtractor(maxWindow:Int, equality:Boolean, noequality:Boolean) {
                             filterVal
                         })
                         .filter(innerIndex => { val inner = innerIndex._1
-                            val filterVal = outer.sentid != innerIndex._1.sentid || !subsumes(outer, innerIndex._1)
+                            val filterVal = if(outer.sentid == inner.sentid) !subsumes(outer, inner) else false//outer.sentid != inner.sentid || !subsumes(outer, inner)
                             filterVal
                         })
                         .foreach(innerIndex => {

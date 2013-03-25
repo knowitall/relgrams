@@ -13,16 +13,37 @@ import org.apache.solr.client.solrj.{SolrQuery, SolrServer}
 import org.apache.solr.client.solrj.impl.{XMLResponseParser, HttpSolrServer}
 
 import scala.collection.JavaConversions._
-import edu.washington.cs.knowitall.relgrams.{AffinityMeasures, Measures, RelationTuple}
+import edu.washington.cs.knowitall.relgrams.{TypedTuplesRecord, AffinityMeasures, Measures, RelationTuple}
 
 import javax.xml.stream.XMLResolver
+import org.apache.solr.common.SolrDocument
 
-class SolrSearchWrapper(solrBaseUrl:String) {
+class SolrSearchWrapper(solrBaseUrl:String, solrDocUrl:String) {
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
   val server = new HttpSolrServer(solrBaseUrl)
   server.setParser(new XMLResponseParser)
+
+  val docServer = new HttpSolrServer(solrDocUrl)
+  docServer.setParser(new XMLResponseParser)
+
+  def findTypedTuplesRecord(id:String):Option[TypedTuplesRecord] = {
+    val solrQuery = new SolrQuery
+    solrQuery.setQuery("*.*")
+    solrQuery.setRows(10)
+    solrQuery.addFilterQuery("id:" + id)
+    println("SolrQuery: " + solrQuery.toString)
+    val results = docServer.query(solrQuery)
+    results.getResults.find(x => x.getFieldValue("id").toString.equals(id)) match {
+      case Some(idresult:SolrDocument) => {
+        TypedTuplesRecord.fromString(idresult.getFieldValue("serialize").toString)
+      }
+      case _ => None
+    }
+
+  }
+
 
   def toSolrQuery(query:RelgramsQuery):Option[SolrQuery] = {
     val solrQuery = new SolrQuery()
@@ -80,10 +101,19 @@ object SolrSearchWrapperTest{
   val logger = LoggerFactory.getLogger(this.getClass)
   def main(args:Array[String]){
     val url = args(0)
-    val server = new SolrSearchWrapper(url)
-    val query = new RelgramsQuery(RelationTuple.fromArg1RelArg2("", "pay", ""),MeasureName.bigram, 10, 0.5, 0.5, "ARG1RELARG2", "conditional", "both")
+    val docurl = args(1)
+    val testid = args(2)
+    val server = new SolrSearchWrapper(url, docurl)
+
+    /**val query = new RelgramsQuery(RelationTuple.fromArg1RelArg2("", "pay", ""),MeasureName.bigram, 10, 0.5, 0.5, "ARG1RELARG2", "conditional", "both")
     logger.info("relgramsQuery: " + query.toHTMLString)
     val results = server.search(query)
     logger.info(results.mkString(","))
+     */
+    server.findTypedTuplesRecord(testid) match {
+      case Some(record:TypedTuplesRecord) => logger.info("Found record: " + record.toString)
+      case None => logger.info("Failed to find record for id: " + testid)
+    }
+
   }
 }
