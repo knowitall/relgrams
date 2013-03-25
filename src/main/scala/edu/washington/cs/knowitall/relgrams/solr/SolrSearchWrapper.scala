@@ -18,15 +18,21 @@ import edu.washington.cs.knowitall.relgrams.{TypedTuplesRecord, AffinityMeasures
 import javax.xml.stream.XMLResolver
 import org.apache.solr.common.SolrDocument
 
-class SolrSearchWrapper(solrBaseUrl:String, solrDocUrl:String) {
+class SolrSearchWrapper {
 
+  var docServer:HttpSolrServer = null
+  var server:HttpSolrServer = null
   val logger = LoggerFactory.getLogger(this.getClass)
+  def this(solrBaseUrl:String, solrDocUrl:String) = {
+    this()
+    server = new HttpSolrServer(solrBaseUrl)
+    server.setParser(new XMLResponseParser)
+    logger.info("Initialized server: " + server.ping())
+    docServer = new HttpSolrServer(solrDocUrl)
 
-  val server = new HttpSolrServer(solrBaseUrl)
-  server.setParser(new XMLResponseParser)
-
-  val docServer = new HttpSolrServer(solrDocUrl)
-  docServer.setParser(new XMLResponseParser)
+    docServer.setParser(new XMLResponseParser)
+    logger.info("Initialized doc server: " + docServer.ping())
+  }
 
   def findTypedTuplesRecord(id:String):Option[TypedTuplesRecord] = {
     val solrQuery = new SolrQuery
@@ -72,6 +78,7 @@ class SolrSearchWrapper(solrBaseUrl:String, solrDocUrl:String) {
       case Some(solrQuery:SolrQuery) => {
         logger.info("RelgramsQuery: " + query.toHTMLString)
         logger.info("SolrQuery: " + solrQuery)
+
         logger.info("Server ping: " + server.ping())
         val results = server.query(solrQuery)
         logger.info("Query: %s returned %d solr documents.".format(solrQuery.toString, results.getResults.size))
